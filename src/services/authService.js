@@ -188,14 +188,37 @@ const authService = {
   },
 
   /**
-   * Đổi mật khẩu
+   * Xác thực mật khẩu cũ và gửi OTP để đổi mật khẩu
+   * @param {string} oldPassword - Mật khẩu cũ
+   * @returns {Promise<Object>} - Response data
+   */
+  verifyPasswordAndSendOTP: async (oldPassword) => {
+    try {
+      const currentUser = authService.getCurrentUser();
+      const response = await api.post('/auth/verify-password-and-send-otp', { 
+        email: currentUser?.email,
+        oldPassword 
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Đổi mật khẩu sau khi xác thực OTP
    * @param {string} oldPassword - Mật khẩu cũ
    * @param {string} newPassword - Mật khẩu mới
    * @returns {Promise<Object>} - Response data
    */
   changePassword: async (oldPassword, newPassword) => {
     try {
-      const response = await api.put('/auth/change-password', { oldPassword, newPassword });
+      const currentUser = authService.getCurrentUser();
+      const response = await api.put('/auth/change-password', { 
+        email: currentUser?.email,
+        oldPassword, 
+        newPassword 
+      });
       return response;
     } catch (error) {
       throw error;

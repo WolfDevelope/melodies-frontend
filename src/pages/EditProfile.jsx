@@ -5,6 +5,7 @@ import { UserOutlined, LeftOutlined, DeleteOutlined } from '@ant-design/icons';
 import authService from '../services/authService';
 import ToastNotification from '../components/common/ToastNotification';
 import dayjs from 'dayjs';
+import ActionButtons from '../components/common/ActionButtons';
 
 const { Option } = Select;
 
@@ -317,12 +318,17 @@ const EditProfile = () => {
             </Select>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between items-center pt-8">
-            <Button
-              danger
+          <ActionButtons
+          onCancel={handleCancel}
+          onSubmit={handleSave}
+          loading={loading}
+          submitText="Lưu thông tin"
+          alignment="space-between"
+          leftContent={
+            <Button 
+              danger 
               size="large"
-              icon={<DeleteOutlined />}
+              icon={<DeleteOutlined />} 
               onClick={() => setDeleteModalVisible(true)}
               className="px-6 py-2 rounded-full font-semibold"
               style={{
@@ -333,28 +339,8 @@ const EditProfile = () => {
             >
               Xóa tài khoản
             </Button>
-            <div className="flex gap-4">
-              <Button
-                size="large"
-                onClick={handleCancel}
-                className="px-8 py-2 bg-transparent border-white/20 text-white hover:bg-white/10 rounded-full font-semibold"
-              >
-                Hủy
-              </Button>
-              <Button
-                type="primary"
-                size="large"
-                loading={loading}
-                onClick={handleSave}
-                className="px-8 py-2 bg-gradient-to-r from-pink-500 to-purple-600 border-none rounded-full font-semibold hover:from-pink-600 hover:to-purple-700"
-                style={{
-                  background: 'linear-gradient(to right, #ec4899, #9333ea)',
-                }}
-              >
-                Lưu thông tin
-              </Button>
-            </div>
-          </div>
+          }
+/>
 
           {/* Delete Account Modal */}
           <Modal

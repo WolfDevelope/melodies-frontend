@@ -10,6 +10,8 @@ import TermsOfService from './pages/TermsOfService'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import Account from './pages/Account'
 import EditProfile from './pages/EditProfile'
+import ChangePassword from './pages/ChangePassword'
+import Home from './pages/Home'
 import './App.css'
 
 function App() {
@@ -30,8 +32,10 @@ function App() {
         </Route>
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/account" element={<Account />} />
         <Route path="/account/edit-profile" element={<EditProfile />} />
+        <Route path="/account/change-password" element={<ChangePassword />} />
       </Routes>
     </Router>
   )

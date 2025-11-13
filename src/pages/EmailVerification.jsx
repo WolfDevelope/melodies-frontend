@@ -11,6 +11,7 @@ const EmailVerification = () => {
   const name = location.state?.name || '';
   const fromSignup = location.state?.fromSignup || false; // Kiểm tra đến từ signup hay registration
   const fromEditProfile = location.state?.fromEditProfile || false; // Kiểm tra đến từ edit profile
+  const fromChangePassword = location.state?.fromChangePassword || false; // Kiểm tra đến từ change password
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -100,7 +101,30 @@ const EmailVerification = () => {
       
       if (response.success) {
         // Kiểm tra nguồn gốc
-        if (fromEditProfile) {
+        if (fromChangePassword) {
+          // Từ change password → đổi mật khẩu
+          const pendingChange = localStorage.getItem('pendingPasswordChange');
+          if (pendingChange) {
+            try {
+              const changeData = JSON.parse(pendingChange);
+              await authService.changePassword(changeData.oldPassword, changeData.newPassword);
+              
+              // Xóa dữ liệu tạm
+              localStorage.removeItem('pendingPasswordChange');
+              
+              // Chuyển về account với thông báo thành công
+              navigate('/account', {
+                state: {
+                  message: 'Đổi mật khẩu thành công!',
+                  showToast: true
+                }
+              });
+            } catch (changeError) {
+              setErrorMessage('Không thể đổi mật khẩu. Vui lòng thử lại!');
+              setShowErrorAlert(true);
+            }
+          }
+        } else if (fromEditProfile) {
           // Từ edit profile → cập nhật thông tin với email mới
           const pendingUpdate = localStorage.getItem('pendingProfileUpdate');
           if (pendingUpdate) {
