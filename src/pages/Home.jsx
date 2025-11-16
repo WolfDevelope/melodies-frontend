@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { HomeOutlined, SearchOutlined, UserOutlined, PlusOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { PlusOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import Header from '../components/common/Header';
 import ContentSection from '../components/common/ContentSection';
 import MusicCard from '../components/common/MusicCard';
 import PlaylistCard from '../components/common/PlaylistCard';
+import Footer from '../components/common/Footer';
+import MusicPlayer from '../components/common/MusicPlayer';
 
 const Home = () => {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  // Current playing track state
+  const [currentTrack, setCurrentTrack] = useState({
+    id: 1,
+    title: 'chúng phải tình đầu sao chu đến thế',
+    artist: 'MIN, Dangtranfo, anhmansex',
+    image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // Demo audio URL
+  });
 
   // Mock data - Đề xuất cho bạn
   const recommendations = [
@@ -178,48 +190,9 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#121212] to-[#0a0a0a]">
+    <div className="min-h-screen bg-gradient-to-b from-[#22172b] to-[#3d2a3f] pb-24">
       {/* Header/Navigation */}
-      <header className="sticky top-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/5">
-        <div className="max-w-[1920px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Left: Logo + Nav */}
-            <div className="flex items-center space-x-8">
-              {/* Logo */}
-              <Link to="/" className=" pl-20 flex items-center space-x-2">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
-                  Melodies
-                </h1>
-              </Link>
-
-              {/* Navigation */}
-              <nav className="flex items-center space-x-4">
-                <button className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
-                  <HomeOutlined />
-                  <span>Trang chủ</span>
-                </button>
-                <button className="flex items-center space-x-2 px-4 py-2 rounded-full text-gray-400 hover:text-white transition-colors">
-                  <SearchOutlined />
-                  <span>Tìm kiếm</span>
-                </button>
-              </nav>
-            </div>
-
-            {/* Right: User Menu */}
-            <div className="flex items-center space-x-4">
-              <button className="px-6 py-1.5 rounded-full bg-white text-black font-semibold hover:scale-105 transition-transform">
-                Khám phá Premium
-              </button>
-              <button
-                onClick={() => navigate('/account')}
-                className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-              >
-                <UserOutlined className="text-white text-lg" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className={`max-w-[1920px] mx-auto px-6 py-8 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
@@ -304,8 +277,13 @@ const Home = () => {
         </ContentSection>
       </main>
 
+      {/* Footer */}
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+        <Footer />
+      </div>
+
       {/* Sidebar - Thư viện */}
-      <aside className={`fixed left-0 top-16 bottom-0 bg-black/40 backdrop-blur-md border-r border-white/5 p-4 hidden lg:block transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+      <aside className={`fixed left-0 top-16 bottom-0 bg-black/40 backdrop-blur-md border-none p-4 hidden lg:block transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <div className="space-y-4">
           {/* Thư viện Button with Collapse Icon */}
           <div className="relative group">
@@ -358,6 +336,13 @@ const Home = () => {
           </div>
         )}
       </aside>
+
+      {/* Music Player */}
+      <MusicPlayer
+        currentTrack={currentTrack}
+        onNext={() => console.log('Next track')}
+        onPrevious={() => console.log('Previous track')}
+      />
     </div>
   );
 };

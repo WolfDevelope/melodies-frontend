@@ -4,6 +4,7 @@ import { Input, Button } from 'antd';
 import { SearchOutlined, UserOutlined, EditOutlined, SafetyOutlined, CreditCardOutlined, RightOutlined, CrownOutlined, LockOutlined, AppstoreOutlined, BellOutlined, EyeOutlined, LoginOutlined, LogoutOutlined } from '@ant-design/icons';
 import authService from '../services/authService';
 import ToastNotification from '../components/common/ToastNotification';
+import Footer from '../components/common/Footer';
 import { Link } from 'react-router-dom';
 
 const Account = () => {
@@ -241,51 +242,9 @@ const Account = () => {
 
        
       </main>
-       {/* Footer */}
-      <footer className="bg-black text-white py-12 mt-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className="flex justify-center mb-8">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
-                Melodies
-              </h1>
-            </div> 
-            <div>
-              <h4 className="font-semibold mb-4">Công ty</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white">Giới thiệu</a></li>
-                <li><a href="#" className="hover:text-white">Việc làm</a></li>
-                <li><a href="#" className="hover:text-white">For the Record</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Cộng đồng</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white">Dành cho nghệ sĩ</a></li>
-                <li><a href="#" className="hover:text-white">Nhà phát triển</a></li>
-                <li><a href="#" className="hover:text-white">Quảng cáo</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Liên kết hữu ích</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white">Hỗ trợ</a></li>
-                <li><a href="#" className="hover:text-white">Ứng dụng di động miễn phí</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Pháp lý</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white">Điều khoản sử dụng</a></li>
-                <li><a href="#" className="hover:text-white">Chính sách quyền riêng tư</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-12 pt-8 border-t border-gray-800 text-sm text-gray-400">
-            <p>&copy; 2025 Melodies Technology</p>
-          </div>
-        </div>
-      </footer>
+      
+      {/* Footer */}
+      <Footer />
 
       {/* Success Toast Notification */}
       <ToastNotification

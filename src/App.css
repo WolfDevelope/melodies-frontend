@@ -1,0 +1,98 @@
+/* User Menu Dropdown Styling */
+.user-menu-dropdown .ant-dropdown-menu {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.user-menu-dropdown .ant-dropdown-menu-item {
+  padding: 0 !important;
+  margin: 4px 8px !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+}
+
+.user-menu-dropdown .ant-dropdown-menu-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.user-menu-dropdown .ant-dropdown-menu-item-divider {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  margin: 8px 12px !important;
+}
+
+/* Music Player Slider Styling */
+.music-player-slider .ant-slider-rail {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  height: 4px !important;
+}
+
+.music-player-slider .ant-slider-track {
+  background-color: #ec4899 !important;
+  height: 4px !important;
+}
+
+.music-player-slider .ant-slider-handle::after {
+  width: 12px !important;
+  height: 12px !important;
+  background-color: #ec4899 !important;
+  border: none !important;
+  box-shadow: none !important;
+  inset: 0 !important;
+}
+
+.music-player-slider .ant-slider-handle {
+  width: 12px !important;
+  height: 12px !important;
+  background-color: #ec4899 !important;
+  border-radius: 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 0;
+  margin-top: -1px !important;
+  margin-left: -2px !important;
+  transform: translateY(0) !important;
+}
+
+.music-player-slider:hover .ant-slider-handle {
+  opacity: 1;
+}
+
+.volume-slider .ant-slider-rail {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  height: 4px !important;
+}
+
+.volume-slider .ant-slider-track {
+  background-color: #ec4899 !important;
+  height: 4px !important;
+}
+
+.volume-slider .ant-slider-handle::after {
+  width: 12px !important;
+  height: 12px !important;
+  background-color: #ec4899 !important;
+  border: none !important;
+  box-shadow: none !important;
+  inset: 0 !important;
+}
+
+.volume-slider .ant-slider-handle {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 100% !important;
+  background-color: #ec4899 !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 0;
+  margin-top: -1px !important;
+  margin-left: -2px !important;
+  transform: translateY(0) !important;
+}
+
+.volume-slider:hover .ant-slider-handle {
+  opacity: 1;
+  
+}
+
+
