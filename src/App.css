@@ -92,7 +92,273 @@
 
 .volume-slider:hover .ant-slider-handle {
   opacity: 1;
-  
 }
 
+/* Admin Dashboard Styling */
+.admin-table .ant-table {
+  background: transparent !important;
+  color: white !important;
+}
 
+.admin-table .ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #9ca3af !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-weight: 600 !important;
+}
+
+.admin-table .ant-table-tbody > tr {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  transition: all 0.3s ease !important;
+}
+
+.admin-table .ant-table-tbody > tr:hover > td {
+  background: rgba(103, 57, 95, 0.819) !important;
+  position: relative !important;
+}
+
+.admin-table .ant-table-tbody > tr:hover {
+  background: transparent !important;
+}
+
+.admin-table .ant-table-tbody > tr > td {
+  color: white !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  transition: all 0.3s ease !important;
+}
+
+.admin-table .ant-pagination {
+  color: white !important;
+  padding-right: 0.5rem !important;
+}
+
+.admin-table .ant-pagination-item {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.admin-table .ant-pagination-item a {
+  color: white !important;
+}
+
+.admin-table .ant-pagination-prev button,
+.admin-table .ant-pagination-next button {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+}
+
+.admin-table .ant-pagination-prev:hover button,
+.admin-table .ant-pagination-next:hover button {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.admin-table .ant-pagination-disabled button {
+  color: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.admin-table .ant-pagination-item-active {
+  background: linear-gradient(to right, #ec4899, #8b5cf6) !important;
+  border-color: #ec4899 !important;
+}
+
+.admin-table .ant-pagination-item-active a {
+  color: white !important;
+}
+
+.admin-table .ant-select-selector {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  color: white !important;
+}
+
+.admin-table .ant-select-arrow {
+  color: white !important;
+}
+
+.admin-table .ant-pagination-options {
+  border: none !important;
+}
+
+/* Ant Design Menu Dark Theme Override */
+.ant-menu-dark .ant-menu-item-selected {
+  background: linear-gradient(to right, #ec4899, #8b5cf6) !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background: rgba(236, 72, 153, 0.2) !important;
+}
+
+/* Card styling */
+.ant-card-head {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Modal styling for admin */
+.admin-modal .ant-modal-content {
+  background: linear-gradient(to bottom, #60407a, #4b4ba1) !important;
+  border: none !important;
+}
+
+.admin-modal .ant-modal-header {
+  background: transparent !important;
+  border-bottom: none !important;
+}
+
+.admin-modal .ant-modal-title {
+  color: white !important;
+}
+
+.admin-modal .ant-modal-close {
+  color: white !important;
+}
+
+.admin-modal .ant-modal-close:hover {
+  color: #ec4899 !important;
+}
+
+.admin-modal .ant-form-item-label > label {
+  color: #d1d5db !important;
+}
+
+.admin-modal .ant-input,
+.admin-modal .ant-select-selector,
+.admin-modal .ant-picker {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  color: white !important;
+}
+
+.admin-modal .ant-input::placeholder,
+.admin-modal .ant-select-selection-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.admin-modal .ant-select-arrow {
+  color: white !important;
+}
+
+/* Select dropdown styling - need to target globally since dropdown renders outside modal */
+.ant-select-dropdown {
+  background: rgba(96, 64, 122, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-select-item {
+  color: white !important;
+  background: transparent !important;
+}
+
+.ant-select-item-option-selected {
+  background: rgba(236, 72, 153, 0.3) !important;
+}
+
+.ant-select-item-option-active {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.admin-modal .ant-upload {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+}
+
+.admin-modal .ant-upload:hover {
+  border-color: none !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.admin-modal .ant-upload-list-item {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Button styling - global for modal buttons */
+.ant-modal .ant-btn:not(.ant-btn-primary) {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+.ant-modal .ant-btn:not(.ant-btn-primary):hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  color: white !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+.ant-modal .ant-btn:not(.ant-btn-primary):focus {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+.ant-modal .ant-btn .anticon {
+  color: white !important;
+}
+
+.ant-modal .ant-btn span {
+  text-decoration: none !important;
+}
+
+/* Upload button specific styling */
+.upload-btn-transparent,
+.upload-btn-transparent:hover,
+.upload-btn-transparent:focus,
+.upload-btn-transparent:active {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.upload-btn-transparent span {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+.upload-btn-transparent .anticon {
+  color: white !important;
+}
+
+/* Dragger upload styling */
+.admin-modal .ant-upload-drag {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 2px dashed rgba(255, 255, 255, 0.3) !important;
+  border-radius: 8px !important;
+}
+
+.admin-modal .ant-upload-drag:hover {
+  border-color: #ec4899 !important;
+  background: rgba(236, 72, 153, 0.1) !important;
+}
+
+.admin-modal .ant-upload-drag-icon {
+  font-size: 48px !important;
+  margin-bottom: 16px !important;
+}
+
+.admin-modal .ant-upload-text {
+  color: white !important;
+  font-size: 16px !important;
+  margin-bottom: 8px !important;
+}
+
+.admin-modal .ant-upload-hint {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 14px !important;
+}

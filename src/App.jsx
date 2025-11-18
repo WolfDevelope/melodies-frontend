@@ -12,6 +12,7 @@ import Account from './pages/Account'
 import EditProfile from './pages/EditProfile'
 import ChangePassword from './pages/ChangePassword'
 import Home from './pages/Home'
+import Admin from './pages/Admin'
 import './App.css'
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
         <Route path="/account" element={<Account />} />
         <Route path="/account/edit-profile" element={<EditProfile />} />
         <Route path="/account/change-password" element={<ChangePassword />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </Router>
   )

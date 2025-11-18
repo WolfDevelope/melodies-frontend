@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import Header from '../components/common/Header';
 import ContentSection from '../components/common/ContentSection';
 import MusicCard from '../components/common/MusicCard';
 import PlaylistCard from '../components/common/PlaylistCard';
 import Footer from '../components/common/Footer';
 import MusicPlayer from '../components/common/MusicPlayer';
+import Sidebar from '../components/common/Sidebar';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -15,10 +16,10 @@ const Home = () => {
   // Current playing track state
   const [currentTrack, setCurrentTrack] = useState({
     id: 1,
-    title: 'chúng phải tình đầu sao chu đến thế',
-    artist: 'MIN, Dangtranfo, anhmansex',
-    image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300',
-    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // Demo audio URL
+    title: 'greedy',
+    artist: 'Tale McRae',
+    image: 'https://i.scdn.co/image/ab67616d00001e0221d586ad830dd93b2703b139',
+    audioUrl: './assets/music/Tate McRae - greedy (Official Video).mp3', // Demo audio URL
   });
 
   // Mock data - Đề xuất cho bạn
@@ -283,47 +284,19 @@ const Home = () => {
       </div>
 
       {/* Sidebar - Thư viện */}
-      <aside className={`fixed left-0 top-16 bottom-0 bg-black/40 backdrop-blur-md border-none p-4 hidden lg:block transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="space-y-4">
-          {/* Thư viện Button with Collapse Icon */}
-          <div className="relative group">
-            {sidebarCollapsed ? (
-              /* Expand Button - Shows when collapsed */
-              <button
-                onClick={() => setSidebarCollapsed(false)}
-                className="w-full flex items-center justify-center px-4 py-3 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white hover:scale-110"
-                title="Mở rộng"
-              >
-                <MenuUnfoldOutlined style={{ fontSize: '20px', color: '#ffffff' }} />
-              </button>
-            ) : (
-              <>
-                <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
-                  <span className="font-semibold">Thư viện</span>
-                </button>
-                {/* Collapse Toggle Icon - Always visible */}
-                <button
-                  onClick={() => setSidebarCollapsed(true)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 hover:scale-110 transition-all"
-                  style={{ color: '#ffffff' }}
-                  title="Thu gọn"
-                >
-                  <MenuFoldOutlined style={{ fontSize: '20px', color: '#ffffff' }} />
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Tạo danh sách phát Button */}
-          <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
-            <PlusOutlined className="text-xl" />
-            {!sidebarCollapsed && <span className="font-semibold">Tạo danh sách phát</span>}
-          </button>
-        </div>
-
-        {/* Expanded Content */}
-        {!sidebarCollapsed && (
-          <div className="mt-8">
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onCollapse={setSidebarCollapsed}
+        title="Thư viện"
+        menuItems={[
+          {
+            icon: <PlusOutlined />,
+            label: 'Tạo danh sách phát',
+            onClick: () => console.log('Create playlist'),
+          },
+        ]}
+        expandedContent={
+          <div>
             <h3 className="text-gray-400 text-sm font-semibold mb-4 px-4">
               Tạo danh sách phát đầu tiên của bạn
             </h3>
@@ -334,8 +307,8 @@ const Home = () => {
               Tạo danh sách phát
             </button>
           </div>
-        )}
-      </aside>
+        }
+      />
 
       {/* Music Player */}
       <MusicPlayer

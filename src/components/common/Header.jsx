@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { HomeOutlined, SearchOutlined, UserOutlined, ExportOutlined } from '@ant-design/icons';
 import { Dropdown } from 'antd';
 
@@ -7,10 +7,16 @@ import { Dropdown } from 'antd';
  * Header - Reusable header component with navigation
  * @param {boolean} showNav - Show navigation buttons (default: true)
  * @param {boolean} showPremium - Show premium button (default: true)
+ * @param {string} pageTitle - Custom page title to display instead of nav (optional)
+ * @param {ReactNode} pageTitleIcon - Icon for page title (optional)
  */
-const Header = ({ showNav = true, showPremium = true }) => {
+const Header = ({ showNav = true, showPremium = true, pageTitle = '', pageTitleIcon = null }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  
+  // Check if current page is home
+  const isHomePage = location.pathname === '/' || location.pathname === '/home';
 
   // User menu items
   const menuItems = [
@@ -126,19 +132,40 @@ const Header = ({ showNav = true, showPremium = true }) => {
               </h1>
             </Link>
 
-            {/* Navigation */}
+            
+            
+            {/* Navigation - Always show if showNav is true */}
             {showNav && (
               <nav className="flex items-center space-x-4">
-                <button className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+                <button 
+                  onClick={() => navigate('/home')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors ${
+                    isHomePage 
+                      ? 'bg-white/10 text-white' 
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
                   <HomeOutlined />
                   <span>Trang chủ</span>
                 </button>
-                <button className="flex items-center space-x-2 px-4 py-2 rounded-full text-gray-400 hover:text-white transition-colors">
+                <button 
+                  onClick={() => navigate('/search')}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
                   <SearchOutlined />
                   <span>Tìm kiếm</span>
                 </button>
               </nav>
             )}
+
+            {/* Page Title (if provided) */}
+            {pageTitle && (
+              <h2 className="text-white text-2xl font-bold flex items-center gap-3">
+                {pageTitleIcon && <span className="text-2xl">{pageTitleIcon}</span>}
+                {pageTitle}
+              </h2>
+            )}
+            
           </div>
 
           {/* Right: User Menu */}
