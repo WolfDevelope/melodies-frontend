@@ -1,206 +1,105 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Tag, Modal, Form, Upload, Select, message } from 'antd';
+import { Table, Button, Input, Tag, Modal, Form, Upload, Select, message, Avatar } from 'antd';
 import {
   PlusOutlined,
   SearchOutlined,
   EditOutlined,
   DeleteOutlined,
-  UploadOutlined,
-  PlayCircleOutlined,
-  HeartOutlined,
+  UserOutlined,
   InboxOutlined,
 } from '@ant-design/icons';
-import songService from '../../services/songService';
+import artistService from '../../services/artistService';
 
 const { Option } = Select;
 const { Dragger } = Upload;
+const { TextArea } = Input;
 
-const SongsManagement = () => {
+const ArtistsManagement = () => {
   const [searchText, setSearchText] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [deletingSong, setDeletingSong] = useState(null);
-  const [editingSong, setEditingSong] = useState(null);
+  const [deletingArtist, setDeletingArtist] = useState(null);
+  const [editingArtist, setEditingArtist] = useState(null);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [songs, setSongs] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
 
-  // Fetch songs from API
-  const fetchSongs = async (params = {}) => {
+  // Fetch artists from API
+  const fetchArtists = async (params = {}) => {
     try {
       setLoading(true);
-      const response = await songService.getAllSongs({
+      const response = await artistService.getAllArtists({
         page: pagination.current,
         limit: pagination.pageSize,
         search: searchText,
         ...params,
       });
 
-      setSongs(response.data);
+      setArtists(response.data);
       setPagination({
         ...pagination,
         total: response.pagination.total,
       });
     } catch (error) {
-      message.error(error.message || 'Không thể tải danh sách bài hát');
+      message.error(error.message || 'Không thể tải danh sách nghệ sĩ');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load songs on component mount and when search/pagination changes
+  // Load artists on component mount and when search/pagination changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchSongs();
+      fetchArtists();
     }, 300); // Debounce search
     
     return () => clearTimeout(timer);
   }, [searchText]);
 
   useEffect(() => {
-    fetchSongs();
+    fetchArtists();
   }, [pagination.current, pagination.pageSize]);
 
-  // Table columns
-  const columns = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 80,
-    },
-    {
-      title: 'Bài hát',
-      key: 'song',
-      width: 300,
-      render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <img
-            src={record.thumbnail}
-            alt={record.title}
-            className="w-12 h-12 rounded object-cover"
-          />
-          <div>
-            <div className="text-white font-medium">{record.title}</div>
-            <div className="text-gray-400 text-sm">{record.artist}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: 'Album',
-      dataIndex: 'album',
-      key: 'album',
-    },
-    {
-      title: 'Thể loại',
-      dataIndex: 'genre',
-      key: 'genre',
-    },
-    {
-      title: 'Lượt nghe',
-      dataIndex: 'plays',
-      key: 'plays',
-      render: (plays) => (
-        <span className="flex items-center gap-1">
-          <PlayCircleOutlined className="text-blue-500" />
-          {plays.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      title: 'Yêu thích',
-      dataIndex: 'likes',
-      key: 'likes',
-      render: (likes) => (
-        <span className="flex items-center gap-1">
-          <HeartOutlined className="text-pink-500" />
-          {likes.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      title: 'Thời lượng',
-      dataIndex: 'duration',
-      key: 'duration',
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
-        <Tag
-          style={{
-            backgroundColor: status === 'active' ? '#166534' : '#991b1b',
-            color: '#ffffff',
-            border: 'none',
-            fontWeight: '500',
-          }}
-        >
-          {status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      width: 120,
-      render: (_, record) => (
-        <div className="flex gap-2">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            className="text-blue-400 hover:text-blue-300"
-            onClick={() => handleEdit(record)}
-          />
-          <Button
-            type="text"
-            icon={<DeleteOutlined />}
-            className="text-red-400 hover:text-red-300"
-            onClick={() => handleDelete(record)}
-          />
-        </div>
-      ),
-    },
-  ];
-
   // Handlers
-  const handleEdit = (song) => {
-    setEditingSong(song);
-    form.setFieldsValue({
-      ...song,
-      releaseDate: song.releaseDate ? song.releaseDate.split('T')[0] : '',
-    });
+  const handleAdd = () => {
+    setEditingArtist(null);
+    form.resetFields();
     setIsModalVisible(true);
   };
 
-  const handleDelete = (song) => {
-    console.log('Delete clicked, song data:', song);
-    setDeletingSong(song);
+  const handleEdit = (record) => {
+    setEditingArtist(record);
+    form.setFieldsValue(record);
+    setIsModalVisible(true);
+  };
+
+  const handleDelete = (artist) => {
+    console.log('Delete clicked, artist data:', artist);
+    setDeletingArtist(artist);
     setIsDeleteModalVisible(true);
   };
 
   const confirmDelete = async () => {
-    if (!deletingSong) return;
+    if (!deletingArtist) return;
     
     try {
-      const songId = deletingSong._id || deletingSong.id;
-      console.log('Deleting song with ID:', songId);
+      const artistId = deletingArtist._id || deletingArtist.id;
+      console.log('Deleting artist with ID:', artistId);
       
       setLoading(true);
-      await songService.deleteSong(songId);
-      message.success('Đã xóa bài hát thành công');
+      await artistService.deleteArtist(artistId);
+      message.success('Đã xóa nghệ sĩ thành công');
       setIsDeleteModalVisible(false);
-      setDeletingSong(null);
-      fetchSongs();
+      setDeletingArtist(null);
+      fetchArtists();
     } catch (error) {
       console.error('Delete error:', error);
-      message.error(error.message || 'Không thể xóa bài hát');
+      message.error(error.message || 'Không thể xóa nghệ sĩ');
     } finally {
       setLoading(false);
     }
@@ -208,32 +107,26 @@ const SongsManagement = () => {
 
   const cancelDelete = () => {
     setIsDeleteModalVisible(false);
-    setDeletingSong(null);
-  };
-
-  const handleAdd = () => {
-    setEditingSong(null);
-    form.resetFields();
-    setIsModalVisible(true);
+    setDeletingArtist(null);
   };
 
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
       
-      if (editingSong) {
-        // Update existing song
-        await songService.updateSong(editingSong._id, values);
-        message.success('Đã cập nhật bài hát thành công');
+      if (editingArtist) {
+        // Update existing artist
+        await artistService.updateArtist(editingArtist._id, values);
+        message.success('Đã cập nhật nghệ sĩ thành công');
       } else {
-        // Add new song
-        await songService.createSong(values);
-        message.success('Đã thêm bài hát thành công');
+        // Add new artist
+        await artistService.createArtist(values);
+        message.success('Đã thêm nghệ sĩ thành công');
       }
       
       setIsModalVisible(false);
       form.resetFields();
-      fetchSongs();
+      fetchArtists();
     } catch (error) {
       if (error.errorFields) {
         // Form validation error
@@ -256,13 +149,104 @@ const SongsManagement = () => {
     });
   };
 
+  // Table columns
+  const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+    },
+    {
+      title: 'Nghệ sĩ',
+      key: 'artist',
+      render: (_, record) => (
+        <div className="flex items-center gap-3">
+          <Avatar src={record.avatar} size={48} icon={<UserOutlined />} />
+          <div>
+            <div className="text-white font-medium flex items-center gap-2">
+              {record.name}
+              {record.verified && (
+                <span className="text-blue-500" title="Đã xác minh">✓</span>
+              )}
+            </div>
+            <div className="text-gray-400 text-sm">{record.genre}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Bài hát',
+      dataIndex: 'totalSongs',
+      key: 'totalSongs',
+      render: (count) => (
+        <span className="text-white">{count.toLocaleString()}</span>
+      ),
+    },
+    {
+      title: 'Albums',
+      dataIndex: 'totalAlbums',
+      key: 'totalAlbums',
+      render: (count) => (
+        <span className="text-white">{count.toLocaleString()}</span>
+      ),
+    },
+    {
+      title: 'Người theo dõi',
+      dataIndex: 'followers',
+      key: 'followers',
+      render: (followers) => (
+        <span className="text-white">{followers.toLocaleString()}</span>
+      ),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag
+          style={{
+            backgroundColor: status === 'active' ? '#166534' : '#991b1b',
+            color: '#ffffff',
+            border: 'none',
+            fontWeight: '500',
+          }}
+        >
+          {status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      width: 150,
+      render: (_, record) => (
+        <div className="flex gap-2">
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+            className="text-blue-500 hover:text-blue-400"
+          />
+          <Button
+            type="text"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record)}
+            className="text-red-500 hover:text-red-400"
+          />
+        </div>
+      ),
+    },
+  ];
+
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-gray-400 text-lg">
-            Tổng số: {pagination.total} bài hát
+            Tổng số: {pagination.total} nghệ sĩ
           </p>
         </div>
         <Button
@@ -272,14 +256,14 @@ const SongsManagement = () => {
           className="bg-gradient-to-r from-pink-500 to-purple-600 border-none"
           size="large"
         >
-          Thêm bài hát
+          Thêm nghệ sĩ
         </Button>
       </div>
 
       {/* Search */}
       <div className="flex gap-4">
         <Input
-          placeholder="Tìm kiếm bài hát, nghệ sĩ, album..."
+          placeholder="Tìm kiếm theo tên nghệ sĩ, thể loại..."
           prefix={<SearchOutlined className="text-gray-400" />}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
@@ -294,15 +278,10 @@ const SongsManagement = () => {
       </div>
 
       {/* Table */}
-      <div
-        className="backdrop-blur-md border border-white/10 rounded-lg overflow-hidden"
-        style={{
-          background: 'linear-gradient(to right, #653c51ff, #311051ff)',
-        }}
-      >
+      <div className="bg-gradient-to-r from-[#653c51ff] to-[#311051ff] rounded-lg p-6">
         <Table
           columns={columns}
-          dataSource={songs}
+          dataSource={artists}
           rowKey="_id"
           loading={loading}
           pagination={{
@@ -310,7 +289,7 @@ const SongsManagement = () => {
             pageSize: pagination.pageSize,
             total: pagination.total,
             showSizeChanger: true,
-            showTotal: (total) => `Tổng ${total} bài hát`,
+            showTotal: (total) => `Tổng ${total} nghệ sĩ`,
           }}
           onChange={handleTableChange}
           className="admin-table"
@@ -321,14 +300,14 @@ const SongsManagement = () => {
       <Modal
         title={
           <span className="text-xl font-bold">
-            {editingSong ? 'Chỉnh sửa bài hát' : 'Thêm bài hát mới'}
+            {editingArtist ? 'Chỉnh sửa nghệ sĩ' : 'Thêm nghệ sĩ mới'}
           </span>
         }
         open={isModalVisible}
         onOk={handleModalOk}
         onCancel={handleModalCancel}
         width={700}
-        okText={editingSong ? 'Cập nhật' : 'Thêm'}
+        okText={editingArtist ? 'Cập nhật' : 'Thêm'}
         cancelText="Hủy"
         className="admin-modal"
         okButtonProps={{
@@ -337,16 +316,8 @@ const SongsManagement = () => {
       >
         <Form form={form} layout="vertical" className="mt-4">
           <Form.Item
-            name="title"
-            label="Tên bài hát"
-            rules={[{ required: true, message: 'Vui lòng nhập tên bài hát' }]}
-          >
-            <Input placeholder="Nhập tên bài hát" size="large" />
-          </Form.Item>
-
-          <Form.Item
-            name="artist"
-            label="Nghệ sĩ"
+            name="name"
+            label="Tên nghệ sĩ"
             rules={[{ required: true, message: 'Vui lòng nhập tên nghệ sĩ' }]}
           >
             <Input placeholder="Nhập tên nghệ sĩ" size="large" />
@@ -354,47 +325,50 @@ const SongsManagement = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <Form.Item
-              name="album"
-              label="Album"
-            >
-              <Input placeholder="Nhập tên album (tùy chọn)" size="large" />
-            </Form.Item>
-
-            <Form.Item
               name="genre"
-              label="Thể loại"
+              label="Thể loại chính"
+              rules={[{ required: true, message: 'Vui lòng chọn thể loại' }]}
             >
-              <Select placeholder="Chọn thể loại (tùy chọn)" size="large" allowClear>
+              <Select placeholder="Chọn thể loại" size="large">
                 <Option value="Pop">Pop</Option>
                 <Option value="Ballad">Ballad</Option>
                 <Option value="Rock">Rock</Option>
                 <Option value="EDM">EDM</Option>
                 <Option value="R&B">R&B</Option>
                 <Option value="Rap">Rap</Option>
+                <Option value="Jazz">Jazz</Option>
+                <Option value="Classical">Classical</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="verified"
+              label="Xác minh"
+              rules={[{ required: true, message: 'Vui lòng chọn trạng thái xác minh' }]}
+            >
+              <Select placeholder="Chọn trạng thái" size="large">
+                <Option value={true}>Đã xác minh</Option>
+                <Option value={false}>Chưa xác minh</Option>
               </Select>
             </Form.Item>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              name="duration"
-              label="Thời lượng"
-              rules={[{ required: true, message: 'Vui lòng nhập thời lượng' }]}
-            >
-              <Input placeholder="VD: 4:32" size="large" />
-            </Form.Item>
-
-            <Form.Item
-              name="releaseDate"
-              label="Ngày phát hành"
-            >
-              <Input type="date" size="large" placeholder="Tùy chọn" />
-            </Form.Item>
-          </div>
+          <Form.Item
+            name="bio"
+            label="Tiểu sử"
+            rules={[{ required: true, message: 'Vui lòng nhập tiểu sử' }]}
+          >
+            <TextArea
+              placeholder="Nhập tiểu sử nghệ sĩ"
+              rows={4}
+              size="large"
+            />
+          </Form.Item>
 
           <Form.Item
             name="status"
             label="Trạng thái"
+            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
           >
             <Select placeholder="Chọn trạng thái" size="large">
               <Option value="active">Hoạt động</Option>
@@ -402,27 +376,9 @@ const SongsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item label="Tải lên file nhạc">
-            <Dragger
-              accept=".mp3,.wav,.flac"
-              maxCount={1}
-              beforeUpload={() => false}
-            >
-              <p className="ant-upload-drag-icon">
-                <InboxOutlined style={{ color: '#ec4899' }} />
-              </p>
-              <p className="ant-upload-text" style={{ color: 'white' }}>
-                Nhấp hoặc kéo file vào đây để tải lên
-              </p>
-              <p className="ant-upload-hint" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                Hỗ trợ định dạng: MP3, WAV, FLAC
-              </p>
-            </Dragger>
-          </Form.Item>
-
           <Form.Item
-            name="thumbnail"
-            label="URL ảnh bìa"
+            name="avatar"
+            label="URL ảnh đại diện"
             rules={[
               {
                 type: 'url',
@@ -436,7 +392,7 @@ const SongsManagement = () => {
             />
           </Form.Item>
 
-          <Form.Item label="Hoặc tải lên ảnh bìa">
+          <Form.Item label="Hoặc tải lên ảnh đại diện">
             <Dragger
               accept="image/*"
               maxCount={1}
@@ -477,9 +433,9 @@ const SongsManagement = () => {
         }}
       >
         <p className="text-white text-base">
-          Bạn có chắc chắn muốn xóa bài hát{' '}
+          Bạn có chắc chắn muốn xóa nghệ sĩ{' '}
           <span className="font-bold text-pink-400">
-            "{deletingSong?.title}"
+            "{deletingArtist?.name}"
           </span>
           ?
         </p>
@@ -491,4 +447,4 @@ const SongsManagement = () => {
   );
 };
 
-export default SongsManagement;
+export default ArtistsManagement;

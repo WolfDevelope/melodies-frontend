@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
 import SongsManagement from './admin/SongsManagement';
+import ArtistsManagement from './admin/ArtistsManagement';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -259,6 +260,8 @@ const Admin = () => {
         {/* Render content based on selected menu */}
         {selectedMenu === 'songs' ? (
           <SongsManagement />
+        ) : selectedMenu === 'artists' ? (
+          <ArtistsManagement />
         ) : (
           <>
           {/* Statistics Cards */}
