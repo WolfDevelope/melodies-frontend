@@ -11,6 +11,8 @@ import {
   InboxOutlined,
 } from '@ant-design/icons';
 import songService from '../../services/songService';
+import albumService from '../../services/albumService';
+import artistService from '../../services/artistService';
 
 const { Option } = Select;
 const { Dragger } = Upload;
@@ -19,11 +21,19 @@ const SongsManagement = () => {
   const [searchText, setSearchText] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isQuickAlbumModalVisible, setIsQuickAlbumModalVisible] = useState(false);
+  const [isQuickArtistModalVisible, setIsQuickArtistModalVisible] = useState(false);
   const [deletingSong, setDeletingSong] = useState(null);
   const [editingSong, setEditingSong] = useState(null);
   const [form] = Form.useForm();
+  const [quickAlbumForm] = Form.useForm();
+  const [quickArtistForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [songs, setSongs] = useState([]);
+  const [albums, setAlbums] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [loadingAlbums, setLoadingAlbums] = useState(false);
+  const [loadingArtists, setLoadingArtists] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -53,6 +63,38 @@ const SongsManagement = () => {
     }
   };
 
+  // Fetch albums from API
+  const fetchAlbums = async () => {
+    try {
+      setLoadingAlbums(true);
+      const response = await albumService.getAllAlbums({
+        limit: 100, // Get all albums
+        status: 'active',
+      });
+      setAlbums(response.data);
+    } catch (error) {
+      console.error('Error fetching albums:', error);
+    } finally {
+      setLoadingAlbums(false);
+    }
+  };
+
+  // Fetch artists from API
+  const fetchArtists = async () => {
+    try {
+      setLoadingArtists(true);
+      const response = await artistService.getAllArtists({
+        limit: 100, // Get all artists
+        status: 'active',
+      });
+      setArtists(response.data);
+    } catch (error) {
+      console.error('Error fetching artists:', error);
+    } finally {
+      setLoadingArtists(false);
+    }
+  };
+
   // Load songs on component mount and when search/pagination changes
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -65,6 +107,12 @@ const SongsManagement = () => {
   useEffect(() => {
     fetchSongs();
   }, [pagination.current, pagination.pageSize]);
+
+  // Load albums and artists on component mount
+  useEffect(() => {
+    fetchAlbums();
+    fetchArtists();
+  }, []);
 
   // Table columns
   const columns = [
@@ -171,11 +219,14 @@ const SongsManagement = () => {
 
   // Handlers
   const handleEdit = (song) => {
+    console.log('✏️ Editing song:', song);
     setEditingSong(song);
-    form.setFieldsValue({
+    const formData = {
       ...song,
       releaseDate: song.releaseDate ? song.releaseDate.split('T')[0] : '',
-    });
+    };
+    console.log('✏️ Setting form values:', formData);
+    form.setFieldsValue(formData);
     setIsModalVisible(true);
   };
 
@@ -217,24 +268,116 @@ const SongsManagement = () => {
     setIsModalVisible(true);
   };
 
+  // Quick Album Modal handlers
+  const handleOpenQuickAlbumModal = () => {
+    quickAlbumForm.resetFields();
+    setIsQuickAlbumModalVisible(true);
+  };
+
+  const handleQuickAlbumOk = async () => {
+    try {
+      const values = await quickAlbumForm.validateFields();
+      
+      // Set default status if not provided
+      if (!values.status) {
+        values.status = 'active';
+      }
+      
+      setLoading(true);
+      await albumService.createAlbum(values);
+      
+      message.success(`Đã tạo album "${values.title}" thành công`);
+      
+      // Close modal
+      setIsQuickAlbumModalVisible(false);
+      quickAlbumForm.resetFields();
+      
+      // Refresh albums list
+      await fetchAlbums();
+      
+    } catch (error) {
+      if (error.errorFields) {
+        // Form validation error
+        return;
+      }
+      message.error(error.message || 'Không thể tạo album');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickAlbumCancel = () => {
+    setIsQuickAlbumModalVisible(false);
+    quickAlbumForm.resetFields();
+  };
+
+  // Quick Artist Modal handlers
+  const handleOpenQuickArtistModal = () => {
+    quickArtistForm.resetFields();
+    setIsQuickArtistModalVisible(true);
+  };
+
+  const handleQuickArtistOk = async () => {
+    try {
+      const values = await quickArtistForm.validateFields();
+      
+      // Set default status if not provided
+      if (!values.status) {
+        values.status = 'active';
+      }
+      
+      setLoading(true);
+      await artistService.createArtist(values);
+      
+      message.success(`Đã tạo nghệ sĩ "${values.name}" thành công`);
+      
+      // Close modal
+      setIsQuickArtistModalVisible(false);
+      quickArtistForm.resetFields();
+      
+      // Refresh artists list
+      await fetchArtists();
+      
+    } catch (error) {
+      if (error.errorFields) {
+        // Form validation error
+        return;
+      }
+      message.error(error.message || 'Không thể tạo nghệ sĩ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickArtistCancel = () => {
+    setIsQuickArtistModalVisible(false);
+    quickArtistForm.resetFields();
+  };
+
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
+      console.log('📝 Form values to submit:', values);
       
       if (editingSong) {
         // Update existing song
+        console.log('📝 Updating song ID:', editingSong._id);
+        console.log('📝 Update data:', values);
         await songService.updateSong(editingSong._id, values);
         message.success('Đã cập nhật bài hát thành công');
       } else {
         // Add new song
+        console.log('📝 Creating new song:', values);
         await songService.createSong(values);
         message.success('Đã thêm bài hát thành công');
       }
       
       setIsModalVisible(false);
       form.resetFields();
+      setEditingSong(null);
       fetchSongs();
     } catch (error) {
+      console.error('❌ Error:', error);
       if (error.errorFields) {
         // Form validation error
         return;
@@ -344,21 +487,79 @@ const SongsManagement = () => {
             <Input placeholder="Nhập tên bài hát" size="large" />
           </Form.Item>
 
-          <Form.Item
-            name="artist"
-            label="Nghệ sĩ"
-            rules={[{ required: true, message: 'Vui lòng nhập tên nghệ sĩ' }]}
-          >
-            <Input placeholder="Nhập tên nghệ sĩ" size="large" />
-          </Form.Item>
+          <div className="flex gap-2 items-start">
+            <Form.Item
+              name="artist"
+              label="Nghệ sĩ"
+              rules={[{ required: true, message: 'Vui lòng chọn nghệ sĩ' }]}
+              style={{ flex: 1, marginBottom: 0 }}
+            >
+              <Select
+                placeholder="Chọn nghệ sĩ"
+                size="large"
+                showSearch
+                loading={loadingArtists}
+                optionFilterProp="label"
+                notFoundContent={loadingArtists ? 'Đang tải...' : 'Không tìm thấy'}
+              >
+                {artists.map((artist) => (
+                  <Option 
+                    key={artist._id} 
+                    value={artist.name}
+                    label={artist.name}
+                  >
+                    {artist.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={handleOpenQuickArtistModal}
+              className="bg-gradient-to-r from-pink-500 to-purple-600 border-none flex-shrink-0"
+              title="Tạo nghệ sĩ mới"
+              style={{ marginTop: 30 }}
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Form.Item
-              name="album"
-              label="Album"
-            >
-              <Input placeholder="Nhập tên album (tùy chọn)" size="large" />
-            </Form.Item>
+            <div className="flex gap-2 items-start">
+              <Form.Item
+                name="album"
+                label="Album"
+                style={{ flex: 1, marginBottom: 0 }}
+              >
+                <Select
+                  placeholder="Chọn album (tùy chọn)"
+                  size="large"
+                  allowClear
+                  showSearch
+                  loading={loadingAlbums}
+                  optionFilterProp="label"
+                >
+                  {albums.map((album) => (
+                    <Option 
+                      key={album._id} 
+                      value={album.title}
+                      label={`${album.title} - ${album.artist}`}
+                    >
+                      {album.title} - {album.artist}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlusOutlined />}
+                onClick={handleOpenQuickAlbumModal}
+                className="bg-gradient-to-r from-pink-500 to-purple-600 border-none flex-shrink-0"
+                title="Tạo album mới"
+                style={{ marginTop: 30 }}
+              />
+            </div>
 
             <Form.Item
               name="genre"
@@ -486,6 +687,138 @@ const SongsManagement = () => {
         <p className="text-gray-400 text-sm mt-2">
           Hành động này không thể hoàn tác.
         </p>
+      </Modal>
+
+      {/* Quick Album Creation Modal */}
+      <Modal
+        title={
+          <span className="text-xl font-bold text-white">
+            Tạo album nhanh
+          </span>
+        }
+        open={isQuickAlbumModalVisible}
+        onOk={handleQuickAlbumOk}
+        onCancel={handleQuickAlbumCancel}
+        okText="Tạo album"
+        cancelText="Hủy"
+        confirmLoading={loading}
+        className="admin-modal"
+        okButtonProps={{
+          className: 'bg-gradient-to-r from-pink-500 to-purple-600 border-none',
+        }}
+      >
+        <Form form={quickAlbumForm} layout="vertical" className="mt-4">
+          <Form.Item
+            name="title"
+            label="Tên album"
+            rules={[{ required: true, message: 'Vui lòng nhập tên album' }]}
+          >
+            <Input placeholder="Nhập tên album" size="large" />
+          </Form.Item>
+
+          <Form.Item
+            name="artist"
+            label="Nghệ sĩ"
+            rules={[{ required: true, message: 'Vui lòng nhập tên nghệ sĩ' }]}
+          >
+            <Input placeholder="Nhập tên nghệ sĩ" size="large" />
+          </Form.Item> 
+
+          <Form.Item name="genre" label="Thể loại">
+            <Select placeholder="Chọn thể loại (tùy chọn)" size="large" allowClear>
+              <Option value="Pop">Pop</Option>
+              <Option value="Ballad">Ballad</Option>
+              <Option value="Rock">Rock</Option>
+              <Option value="EDM">EDM</Option>
+              <Option value="R&B">R&B</Option>
+              <Option value="Rap">Rap</Option>
+              <Option value="Jazz">Jazz</Option>
+              <Option value="Classical">Classical</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="coverImage"
+            label="URL ảnh bìa"
+            rules={[
+              {
+                type: 'url',
+                message: 'Vui lòng nhập URL hợp lệ',
+              },
+            ]}
+          >
+            <Input
+              placeholder="Nhập URL ảnh từ Google Images (tùy chọn)"
+              size="large"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Quick Artist Creation Modal */}
+      <Modal
+        title={
+          <span className="text-xl font-bold text-white">
+            Tạo nghệ sĩ nhanh
+          </span>
+        }
+        open={isQuickArtistModalVisible}
+        onOk={handleQuickArtistOk}
+        onCancel={handleQuickArtistCancel}
+        okText="Tạo nghệ sĩ"
+        cancelText="Hủy"
+        confirmLoading={loading}
+        className="admin-modal"
+        okButtonProps={{
+          className: 'bg-gradient-to-r from-pink-500 to-purple-600 border-none',
+        }}
+      >
+        <Form form={quickArtistForm} layout="vertical" className="mt-4">
+          <Form.Item
+            name="name"
+            label="Tên nghệ sĩ"
+            rules={[{ required: true, message: 'Vui lòng nhập tên nghệ sĩ' }]}
+          >
+            <Input placeholder="Nhập tên nghệ sĩ" size="large" />
+          </Form.Item>
+
+          <Form.Item name="genre" label="Thể loại">
+            <Select placeholder="Chọn thể loại (tùy chọn)" size="large" allowClear>
+              <Option value="Pop">Pop</Option>
+              <Option value="Ballad">Ballad</Option>
+              <Option value="Rock">Rock</Option>
+              <Option value="EDM">EDM</Option>
+              <Option value="R&B">R&B</Option>
+              <Option value="Rap">Rap</Option>
+              <Option value="Jazz">Jazz</Option>
+              <Option value="Classical">Classical</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="bio" label="Tiểu sử">
+            <Input.TextArea
+              rows={3}
+              placeholder="Nhập tiểu sử nghệ sĩ (tùy chọn)"
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="avatar"
+            label="URL ảnh đại diện"
+            rules={[
+              {
+                type: 'url',
+                message: 'Vui lòng nhập URL hợp lệ',
+              },
+            ]}
+          >
+            <Input
+              placeholder="Nhập URL ảnh từ Google Images (tùy chọn)"
+              size="large"
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

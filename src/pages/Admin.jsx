@@ -19,6 +19,8 @@ import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
 import SongsManagement from './admin/SongsManagement';
 import ArtistsManagement from './admin/ArtistsManagement';
+import AlbumsManagement from './admin/AlbumsManagement';
+import UsersManagement from './admin/UsersManagement';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -262,6 +264,10 @@ const Admin = () => {
           <SongsManagement />
         ) : selectedMenu === 'artists' ? (
           <ArtistsManagement />
+        ) : selectedMenu === 'albums' ? (
+          <AlbumsManagement />
+        ) : selectedMenu === 'users' ? (
+          <UsersManagement />
         ) : (
           <>
           {/* Statistics Cards */}
