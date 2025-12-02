@@ -135,15 +135,21 @@ const SongsManagement = () => {
           />
           <div>
             <div className="text-white font-medium">{record.title}</div>
-            <div className="text-gray-400 text-sm">{record.artist}</div>
+            <div className="text-gray-400 text-sm">
+              {record.artist?.name || record.artist}
+            </div>
           </div>
         </div>
       ),
     },
     {
       title: 'Album',
-      dataIndex: 'album',
       key: 'album',
+      render: (_, record) => (
+        <span className="text-gray-300">
+          {record.album?.title || record.album || 'N/A'}
+        </span>
+      ),
     },
     {
       title: 'Thể loại',
@@ -223,6 +229,8 @@ const SongsManagement = () => {
     setEditingSong(song);
     const formData = {
       ...song,
+      artist: song.artist?._id || song.artist,
+      album: song.album?._id || song.album,
       releaseDate: song.releaseDate ? song.releaseDate.split('T')[0] : '',
     };
     console.log('✏️ Setting form values:', formData);

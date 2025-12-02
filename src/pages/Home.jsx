@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusOutlined } from '@ant-design/icons';
+import { Spin, message } from 'antd';
 import Header from '../components/common/Header';
 import ContentSection from '../components/common/ContentSection';
 import MusicCard from '../components/common/MusicCard';
@@ -8,10 +9,13 @@ import PlaylistCard from '../components/common/PlaylistCard';
 import Footer from '../components/common/Footer';
 import MusicPlayer from '../components/common/MusicPlayer';
 import Sidebar from '../components/common/Sidebar';
+import homeService from '../services/homeService';
 
 const Home = () => {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [homeData, setHomeData] = useState(null);
   
   // Current playing track state
   const [currentTrack, setCurrentTrack] = useState({
@@ -190,6 +194,63 @@ const Home = () => {
     },
   ];
 
+  // Fetch homepage data
+  useEffect(() => {
+    const fetchHomeData = async () => {
+      try {
+        setLoading(true);
+        const response = await homeService.getHomePageData();
+        console.log('📊 Homepage API Response:', response);
+        if (response.success) {
+          console.log('✅ Homepage Data:', response.data);
+          setHomeData(response.data);
+        }
+      } catch (error) {
+        console.error('Error loading homepage:', error);
+        message.error('Không thể tải dữ liệu trang chủ');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeData();
+  }, []);
+
+  // Helper function to convert category to card format
+  const categoryToCard = (category) => ({
+    id: category._id,
+    image: category.coverImage || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300',
+    title: category.name,
+    description: category.description || `${category.songs?.length || 0} bài hát`,
+  });
+
+  // Helper function to convert song to card format
+  const songToCard = (song) => ({
+    id: song._id,
+    image: song.thumbnail || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300',
+    title: song.title,
+    description: song.artist?.name || song.artist || 'Unknown Artist',
+  });
+
+  // Helper function to convert category to playlist card
+  const categoryToPlaylistCard = (category) => ({
+    id: category._id,
+    title: category.name,
+    description: category.description || `${category.songs?.length || 0} bài hát`,
+    gradient: category.metadata?.color 
+      ? `linear-gradient(135deg, ${category.metadata.color} 0%, ${category.metadata.color}80 100%)`
+      : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    icon: category.icon || '🎵',
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#22172b] to-[#3d2a3f] flex items-center justify-center">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#22172b] to-[#3d2a3f] pb-24">
       {/* Header/Navigation */}
@@ -210,72 +271,204 @@ const Home = () => {
           </button>
         </div>
 
-        {/* Đề xuất cho bạn */}
-        <ContentSection title="Đề xuất cho bạn" showAllLink="/recommendations">
-          {recommendations.map((item) => (
-            <MusicCard
-              key={item.id}
-              image={item.image}
-              title={item.title}
-              description={item.description}
-              onClick={() => console.log('Clicked:', item.title)}
-            />
-          ))}
-        </ContentSection>
+        
+
+        {/* Custom Homepage Sections - Configured by Admin */}
+        {homeData?.homepageSections && homeData.homepageSections.length > 0 && (
+          <>
+            {homeData.homepageSections.map((category) => {
+              const sectionTitle = category.homepageTitle || category.name;
+              const contentItems = category.contentType === 'songs' 
+                ? category.songs 
+                : category.contentType === 'albums' 
+                ? category.albums 
+                : category.artists;
+
+              if (!contentItems || contentItems.length === 0) return null;
+
+              return (
+                <ContentSection 
+                  key={category._id} 
+                  title={sectionTitle} 
+                  showAllLink={`/category/${category._id}`}
+                >
+                  {contentItems.slice(0, 5).map((item) => {
+                    if (category.contentType === 'songs') {
+                      const card = songToCard(item);
+                      return (
+                        <MusicCard
+                          key={card.id}
+                          image={card.image}
+                          title={card.title}
+                          description={card.description}
+                          onClick={() => setCurrentTrack({
+                            id: item._id,
+                            title: item.title,
+                            artist: item.artist?.name || 'Unknown',
+                            image: item.thumbnail,
+                            audioUrl: item.src,
+                          })}
+                        />
+                      );
+                    } else {
+                      const card = categoryToCard({ ...item, _id: item._id, name: item.title || item.name });
+                      return (
+                        <MusicCard
+                          key={card.id}
+                          image={card.image}
+                          title={card.title}
+                          description={card.description}
+                          type={category.contentType === 'artists' ? 'circle' : 'default'}
+                          onClick={() => navigate(`/${category.contentType}/${item._id}`)}
+                        />
+                      );
+                    }
+                  })}
+                </ContentSection>
+              );
+            })}
+          </>
+        )}
+
+        {/* Đề xuất cho bạn - Featured Categories (Fallback) */}
+        {(!homeData?.homepageSections || homeData.homepageSections.length === 0) && homeData?.featured && homeData.featured.length > 0 && (
+          <ContentSection title="Đề xuất cho bạn" showAllLink="/recommendations">
+            {homeData.featured.slice(0, 5).map((category) => {
+              const card = categoryToCard(category);
+              return (
+                <MusicCard
+                  key={card.id}
+                  image={card.image}
+                  title={card.title}
+                  description={card.description}
+                  onClick={() => navigate(`/category/${card.id}`)}
+                />
+              );
+            })}
+          </ContentSection>
+        )}
 
         {/* Bảng xếp hạng nổi bật */}
-        <ContentSection title="Bảng xếp hạng Nổi bật" showAllLink="/charts">
-          {charts.map((chart) => (
-            <PlaylistCard
-              key={chart.id}
-              title={chart.title}
-              description={chart.description}
-              gradient={chart.gradient}
-              icon={chart.icon}
-              onClick={() => console.log('Clicked:', chart.title)}
-            />
-          ))}
-        </ContentSection>
+        {homeData?.categories?.charts && homeData.categories.charts.length > 0 && (
+          <ContentSection title="Bảng xếp hạng Nổi bật" showAllLink="/charts">
+            {homeData.categories.charts.slice(0, 4).map((category) => {
+              const card = categoryToPlaylistCard(category);
+              return (
+                <PlaylistCard
+                  key={card.id}
+                  title={card.title}
+                  description={card.description}
+                  gradient={card.gradient}
+                  icon={card.icon}
+                  onClick={() => navigate(`/category/${card.id}`)}
+                />
+              );
+            })}
+          </ContentSection>
+        )}
 
         {/* Mới phát hành dành cho bạn */}
-        <ContentSection title="Mới phát hành dành cho bạn" showAllLink="/new-releases">
-          {newReleases.map((item) => (
-            <MusicCard
-              key={item.id}
-              image={item.image}
-              title={item.title}
-              description={item.description}
-              onClick={() => console.log('Clicked:', item.title)}
-            />
-          ))}
-        </ContentSection>
+        {homeData?.newReleases && homeData.newReleases.length > 0 && (
+          <ContentSection title="Mới phát hành dành cho bạn" showAllLink="/new-releases">
+            {homeData.newReleases.slice(0, 5).map((song) => {
+              const card = songToCard(song);
+              return (
+                <MusicCard
+                  key={card.id}
+                  image={card.image}
+                  title={card.title}
+                  description={card.description}
+                  onClick={() => setCurrentTrack({
+                    id: song._id,
+                    title: song.title,
+                    artist: song.artist?.name || 'Unknown',
+                    image: song.thumbnail,
+                    audioUrl: song.src,
+                  })}
+                />
+              );
+            })}
+          </ContentSection>
+        )}
 
-        {/* Nghệ sĩ tiêu biểu */}
-        <ContentSection title="Nghệ sĩ tiêu biểu" showAllLink="/artists">
-          {artists.map((artist) => (
-            <MusicCard
-              key={artist.id}
-              image={artist.image}
-              title={artist.title}
-              description={artist.description}
-              type="circle"
-              onClick={() => console.log('Clicked:', artist.title)}
-            />
-          ))}
-        </ContentSection>
+        {/* Playlist dành cho bạn */}
+        {homeData?.categories?.playlists && homeData.categories.playlists.length > 0 && (
+          <ContentSection title="Playlist dành cho bạn" showAllLink="/playlists">
+            {homeData.categories.playlists.slice(0, 5).map((category) => {
+              const card = categoryToCard(category);
+              return (
+                <MusicCard
+                  key={card.id}
+                  image={card.image}
+                  title={card.title}
+                  description={card.description}
+                  onClick={() => navigate(`/category/${card.id}`)}
+                />
+              );
+            })}
+          </ContentSection>
+        )}
 
-        {/* Album mà bạn có thể thích */}
-        <ContentSection title="Album mà bạn có thể thích" showAllLink="/albums">
-          {albums.map((album) => (
-            <MusicCard
-              key={album.id}
-              image={album.image}
-              title={album.title}
-              description={album.description}
-              onClick={() => console.log('Clicked:', album.title)}
-            />
-          ))}
-        </ContentSection>
+        {/* Trending - Most Played */}
+        {homeData?.trending && homeData.trending.length > 0 && (
+          <ContentSection title="Đang thịnh hành" showAllLink="/trending">
+            {homeData.trending.slice(0, 5).map((song) => {
+              const card = songToCard(song);
+              return (
+                <MusicCard
+                  key={card.id}
+                  image={card.image}
+                  title={card.title}
+                  description={card.description}
+                  onClick={() => setCurrentTrack({
+                    id: song._id,
+                    title: song.title,
+                    artist: song.artist?.name || 'Unknown',
+                    image: song.thumbnail,
+                    audioUrl: song.src,
+                  })}
+                />
+              );
+            })}
+          </ContentSection>
+        )}
+
+        {/* Album Categories */}
+        {homeData?.categories?.albums && homeData.categories.albums.length > 0 && (
+          <ContentSection title="Album mà bạn có thể thích" showAllLink="/albums">
+            {homeData.categories.albums.slice(0, 5).map((category) => {
+              const card = categoryToCard(category);
+              return (
+                <MusicCard
+                  key={card.id}
+                  image={card.image}
+                  title={card.title}
+                  description={card.description}
+                  onClick={() => navigate(`/category/${card.id}`)}
+                />
+              );
+            })}
+          </ContentSection>
+        )}
+
+        {/* Artist Categories */}
+        {homeData?.categories?.artists && homeData.categories.artists.length > 0 && (
+          <ContentSection title="Nghệ sĩ tiêu biểu" showAllLink="/artists">
+            {homeData.categories.artists.slice(0, 5).map((category) => {
+              const card = categoryToCard(category);
+              return (
+                <MusicCard
+                  key={card.id}
+                  image={card.image}
+                  title={card.title}
+                  description={card.description}
+                  type="circle"
+                  onClick={() => navigate(`/category/${card.id}`)}
+                />
+              );
+            })}
+          </ContentSection>
+        )}
       </main>
 
       {/* Footer */}

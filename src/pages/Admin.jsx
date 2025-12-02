@@ -13,6 +13,7 @@ import {
   PlayCircleOutlined,
   HeartOutlined,
   BarChartOutlined,
+  FolderOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
@@ -21,6 +22,7 @@ import SongsManagement from './admin/SongsManagement';
 import ArtistsManagement from './admin/ArtistsManagement';
 import AlbumsManagement from './admin/AlbumsManagement';
 import UsersManagement from './admin/UsersManagement';
+import CategoriesManagement from './admin/CategoriesManagement';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -195,11 +197,18 @@ const Admin = () => {
       onClick: () => setSelectedMenu('albums'),
     },
     {
+      icon: <FolderOutlined />,
+      label: 'Danh mục',
+      active: selectedMenu === 'categories',
+      onClick: () => setSelectedMenu('categories'),
+    },
+    {
       icon: <UserOutlined />,
       label: 'Người dùng',
       active: selectedMenu === 'users',
       onClick: () => setSelectedMenu('users'),
     },
+    
     {
       icon: <BarChartOutlined />,
       label: 'Thống kê',
@@ -223,6 +232,8 @@ const Admin = () => {
         return { title: 'Quản lý nghệ sĩ', icon: <TeamOutlined /> };
       case 'albums':
         return { title: 'Quản lý Albums', icon: <AppstoreOutlined /> };
+      case 'categories':
+        return { title: 'Quản lý danh mục', icon: <FolderOutlined /> };
       case 'users':
         return { title: 'Quản lý người dùng', icon: <UserOutlined /> };
       case 'analytics':
@@ -266,6 +277,8 @@ const Admin = () => {
           <ArtistsManagement />
         ) : selectedMenu === 'albums' ? (
           <AlbumsManagement />
+        ) : selectedMenu === 'categories' ? (
+          <CategoriesManagement />
         ) : selectedMenu === 'users' ? (
           <UsersManagement />
         ) : (
