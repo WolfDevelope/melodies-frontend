@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Input, Tag, Modal, Form, Select, message, DatePicker } from 'antd';
 import {
   PlusOutlined,
@@ -10,12 +10,41 @@ import {
 import albumService from '../../services/albumService';
 import artistService from '../../services/artistService';
 import dayjs from 'dayjs';
+import useAdminData from '../../hooks/useAdminData';
+import useReferenceData from '../../hooks/useReferenceData';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
 const AlbumsManagement = () => {
-  const [searchText, setSearchText] = useState('');
+  // ✅ OPTIMIZATION: Use custom hooks for data management
+  const {
+    data: albums,
+    loading,
+    searchText,
+    pagination,
+    setSearchText,
+    handleTableChange,
+    refresh: refreshAlbums,
+  } = useAdminData(albumService.getAllAlbums, {
+    cacheKey: 'admin_albums',
+    cacheTTL: 3 * 60 * 1000, // 3 minutes
+    debounceDelay: 500,
+    errorMessage: 'Không thể tải danh sách albums',
+  });
+
+  // ✅ OPTIMIZATION: Use reference data hook with caching
+  const {
+    data: artists,
+    loading: loadingArtists,
+    fetchData: fetchArtists,
+  } = useReferenceData(artistService.getAllArtists, {
+    cacheKey: 'artists_reference',
+    cacheTTL: 10 * 60 * 1000, // 10 minutes
+    autoFetch: false,
+  });
+
+  // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isQuickArtistModalVisible, setIsQuickArtistModalVisible] = useState(false);
@@ -23,100 +52,26 @@ const AlbumsManagement = () => {
   const [editingAlbum, setEditingAlbum] = useState(null);
   const [form] = Form.useForm();
   const [quickArtistForm] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [albums, setAlbums] = useState([]);
-  const [artists, setArtists] = useState([]);
-  const [loadingArtists, setLoadingArtists] = useState(false);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
 
-  // Fetch albums from API
-  const fetchAlbums = async (params = {}) => {
-    try {
-      setLoading(true);
-      const response = await albumService.getAllAlbums({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        search: searchText,
-        ...params,
-      });
-
-      setAlbums(response.data);
-      setPagination({
-        ...pagination,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message || 'Không thể tải danh sách albums');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch artists from API
-  const fetchArtists = async () => {
-    try {
-      setLoadingArtists(true);
-      const response = await artistService.getAllArtists({
-        limit: 100, // Get all artists
-        status: 'active',
-      });
-      
-      // Handle different response structures
-      if (response.artists) {
-        setArtists(response.artists);
-      } else if (Array.isArray(response.data)) {
-        setArtists(response.data);
-      } else if (Array.isArray(response)) {
-        setArtists(response);
-      } else {
-        console.error('Unexpected response structure:', response);
-        setArtists([]);
-      }
-    } catch (error) {
-      console.error('Error fetching artists:', error);
-      message.error('Không thể tải danh sách nghệ sĩ');
-      setArtists([]);
-    } finally {
-      setLoadingArtists(false);
-    }
-  };
-
-  // Load albums on component mount and when search/pagination changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchAlbums();
-    }, 300); // Debounce search
-    
-    return () => clearTimeout(timer);
-  }, [searchText]);
-
-  useEffect(() => {
-    fetchAlbums();
-  }, [pagination.current, pagination.pageSize]);
-
-  // Load artists on component mount
-  useEffect(() => {
-    fetchArtists();
-  }, []);
-
-  // Handlers
+  // ✅ OPTIMIZATION: Lazy load artists only when modal opens
   const handleAdd = () => {
     setEditingAlbum(null);
     form.resetFields();
     setIsModalVisible(true);
+    // Fetch artists only when needed
+    if (artists.length === 0) fetchArtists();
   };
 
   const handleEdit = (record) => {
     setEditingAlbum(record);
     form.setFieldsValue({
       ...record,
+      artist: record.artist?._id || record.artist,
       releaseDate: record.releaseDate ? dayjs(record.releaseDate) : null,
     });
     setIsModalVisible(true);
+    // Fetch artists only when needed
+    if (artists.length === 0) fetchArtists();
   };
 
   const handleDelete = (album) => {
@@ -137,7 +92,7 @@ const AlbumsManagement = () => {
       message.success('Đã xóa album thành công');
       setIsDeleteModalVisible(false);
       setDeletingAlbum(null);
-      fetchAlbums();
+      refreshAlbums();
     } catch (error) {
       console.error('Delete error:', error);
       message.error(error.message || 'Không thể xóa album');
@@ -215,7 +170,7 @@ const AlbumsManagement = () => {
       
       setIsModalVisible(false);
       form.resetFields();
-      fetchAlbums();
+      refreshAlbums();
     } catch (error) {
       if (error.errorFields) {
         // Form validation error
@@ -230,13 +185,7 @@ const AlbumsManagement = () => {
     form.resetFields();
   };
 
-  const handleTableChange = (newPagination) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current,
-      pageSize: newPagination.pageSize,
-    });
-  };
+  // handleTableChange is provided by useAdminData hook
 
   // Table columns
   const columns = [

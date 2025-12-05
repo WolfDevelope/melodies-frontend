@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Input, Tag, Modal, Form, Upload, Select, message } from 'antd';
 import {
   PlusOutlined,
@@ -13,12 +13,51 @@ import {
 import songService from '../../services/songService';
 import albumService from '../../services/albumService';
 import artistService from '../../services/artistService';
+import useAdminData from '../../hooks/useAdminData';
+import useReferenceData from '../../hooks/useReferenceData';
 
 const { Option } = Select;
 const { Dragger } = Upload;
 
 const SongsManagement = () => {
-  const [searchText, setSearchText] = useState('');
+  // ✅ OPTIMIZATION: Use custom hooks for data management
+  const {
+    data: songs,
+    loading,
+    searchText,
+    pagination,
+    setSearchText,
+    handleTableChange,
+    refresh: refreshSongs,
+  } = useAdminData(songService.getAllSongs, {
+    cacheKey: 'admin_songs',
+    cacheTTL: 3 * 60 * 1000, // 3 minutes
+    debounceDelay: 500,
+    errorMessage: 'Không thể tải danh sách bài hát',
+  });
+
+  // ✅ OPTIMIZATION: Use reference data hooks with caching
+  const {
+    data: albums,
+    loading: loadingAlbums,
+    fetchData: fetchAlbums,
+  } = useReferenceData(albumService.getAllAlbums, {
+    cacheKey: 'albums_reference',
+    cacheTTL: 10 * 60 * 1000, // 10 minutes
+    autoFetch: false,
+  });
+
+  const {
+    data: artists,
+    loading: loadingArtists,
+    fetchData: fetchArtists,
+  } = useReferenceData(artistService.getAllArtists, {
+    cacheKey: 'artists_reference',
+    cacheTTL: 10 * 60 * 1000, // 10 minutes
+    autoFetch: false,
+  });
+
+  // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isQuickAlbumModalVisible, setIsQuickAlbumModalVisible] = useState(false);
@@ -28,91 +67,29 @@ const SongsManagement = () => {
   const [form] = Form.useForm();
   const [quickAlbumForm] = Form.useForm();
   const [quickArtistForm] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [songs, setSongs] = useState([]);
-  const [albums, setAlbums] = useState([]);
-  const [artists, setArtists] = useState([]);
-  const [loadingAlbums, setLoadingAlbums] = useState(false);
-  const [loadingArtists, setLoadingArtists] = useState(false);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
 
-  // Fetch songs from API
-  const fetchSongs = async (params = {}) => {
-    try {
-      setLoading(true);
-      const response = await songService.getAllSongs({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        search: searchText,
-        ...params,
-      });
-
-      setSongs(response.data);
-      setPagination({
-        ...pagination,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message || 'Không thể tải danh sách bài hát');
-    } finally {
-      setLoading(false);
-    }
+  // ✅ OPTIMIZATION: Lazy load reference data only when modal opens
+  const handleAdd = () => {
+    setEditingSong(null);
+    form.resetFields();
+    setIsModalVisible(true);
+    // Fetch albums and artists only when needed
+    if (albums.length === 0) fetchAlbums();
+    if (artists.length === 0) fetchArtists();
   };
 
-  // Fetch albums from API
-  const fetchAlbums = async () => {
-    try {
-      setLoadingAlbums(true);
-      const response = await albumService.getAllAlbums({
-        limit: 100, // Get all albums
-        status: 'active',
-      });
-      setAlbums(response.data);
-    } catch (error) {
-      console.error('Error fetching albums:', error);
-    } finally {
-      setLoadingAlbums(false);
-    }
+  const handleEdit = (record) => {
+    setEditingSong(record);
+    form.setFieldsValue({
+      ...record,
+      artist: record.artist?._id || record.artist,
+      album: record.album?._id || record.album,
+    });
+    setIsModalVisible(true);
+    // Fetch albums and artists only when needed
+    if (albums.length === 0) fetchAlbums();
+    if (artists.length === 0) fetchArtists();
   };
-
-  // Fetch artists from API
-  const fetchArtists = async () => {
-    try {
-      setLoadingArtists(true);
-      const response = await artistService.getAllArtists({
-        limit: 100, // Get all artists
-        status: 'active',
-      });
-      setArtists(response.data);
-    } catch (error) {
-      console.error('Error fetching artists:', error);
-    } finally {
-      setLoadingArtists(false);
-    }
-  };
-
-  // Load songs on component mount and when search/pagination changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchSongs();
-    }, 300); // Debounce search
-    
-    return () => clearTimeout(timer);
-  }, [searchText]);
-
-  useEffect(() => {
-    fetchSongs();
-  }, [pagination.current, pagination.pageSize]);
-
-  // Load albums and artists on component mount
-  useEffect(() => {
-    fetchAlbums();
-    fetchArtists();
-  }, []);
 
   // Table columns
   const columns = [
@@ -223,20 +200,7 @@ const SongsManagement = () => {
     },
   ];
 
-  // Handlers
-  const handleEdit = (song) => {
-    console.log('✏️ Editing song:', song);
-    setEditingSong(song);
-    const formData = {
-      ...song,
-      artist: song.artist?._id || song.artist,
-      album: song.album?._id || song.album,
-      releaseDate: song.releaseDate ? song.releaseDate.split('T')[0] : '',
-    };
-    console.log('✏️ Setting form values:', formData);
-    form.setFieldsValue(formData);
-    setIsModalVisible(true);
-  };
+  // Handlers - handleEdit is defined above with lazy loading
 
   const handleDelete = (song) => {
     console.log('Delete clicked, song data:', song);
@@ -256,7 +220,7 @@ const SongsManagement = () => {
       message.success('Đã xóa bài hát thành công');
       setIsDeleteModalVisible(false);
       setDeletingSong(null);
-      fetchSongs();
+      refreshSongs();
     } catch (error) {
       console.error('Delete error:', error);
       message.error(error.message || 'Không thể xóa bài hát');
@@ -270,11 +234,7 @@ const SongsManagement = () => {
     setDeletingSong(null);
   };
 
-  const handleAdd = () => {
-    setEditingSong(null);
-    form.resetFields();
-    setIsModalVisible(true);
-  };
+  // handleAdd is defined above with lazy loading
 
   // Quick Album Modal handlers
   const handleOpenQuickAlbumModal = () => {
@@ -383,7 +343,7 @@ const SongsManagement = () => {
       setIsModalVisible(false);
       form.resetFields();
       setEditingSong(null);
-      fetchSongs();
+      refreshSongs();
     } catch (error) {
       console.error('❌ Error:', error);
       if (error.errorFields) {
@@ -405,13 +365,7 @@ const SongsManagement = () => {
     form.resetFields();
   };
 
-  const handleTableChange = (newPagination) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current,
-      pageSize: newPagination.pageSize,
-    });
-  };
+  // Table change handler is now provided by useAdminData hook
 
   return (
     <div className="space-y-6">

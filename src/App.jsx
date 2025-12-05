@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import MainLayout from './layouts/MainLayout'
 import SignUp from './pages/SignUp'
 import Login from './pages/Login'
 import LoginPassword from './pages/LoginPassword'
@@ -20,7 +21,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        {/* Auth routes - No layout */}
         <Route path="/login">
           <Route index element={<Login />} />
           <Route path="password" element={<LoginPassword />} />
@@ -34,12 +35,19 @@ function App() {
         </Route>
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/account" element={<Account />} />
-        <Route path="/account/edit-profile" element={<EditProfile />} />
-        <Route path="/account/change-password" element={<ChangePassword />} />
+        
+        {/* Main app routes - With layout (Sidebar, Header, Player) */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/account/edit-profile" element={<EditProfile />} />
+          <Route path="/account/change-password" element={<ChangePassword />} />
+        </Route>
+
+        {/* Admin route - No layout */}
         <Route path="/admin" element={<Admin />} />
-        <Route path="/search" element={<Search />} />
       </Routes>
     </Router>
   )

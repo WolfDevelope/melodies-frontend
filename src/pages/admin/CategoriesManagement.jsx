@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Input, Modal, Form, Select, Tag, message, Switch, Checkbox, Avatar } from 'antd';
 import {
   SearchOutlined,
@@ -15,6 +15,8 @@ import songService from '../../services/songService';
 import albumService from '../../services/albumService';
 import artistService from '../../services/artistService';
 import { clearCache, CACHE_KEYS } from '../../utils/cache';
+import useAdminData from '../../hooks/useAdminData';
+import useReferenceData from '../../hooks/useReferenceData';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -48,15 +50,55 @@ const CATEGORY_ICONS = [
 ];
 
 const CategoriesManagement = () => {
-  const [form] = Form.useForm();
-  const [searchText, setSearchText] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
+  // ✅ OPTIMIZATION: Use custom hook for data management
+  const {
+    data: categories,
+    loading,
+    searchText,
+    pagination,
+    setSearchText,
+    handleTableChange,
+    refresh: refreshCategories,
+  } = useAdminData(categoryService.getAllCategories, {
+    cacheKey: 'admin_categories',
+    cacheTTL: 5 * 60 * 1000, // 5 minutes
+    debounceDelay: 500,
+    errorMessage: 'Không thể tải danh sách danh mục',
   });
+
+  // ✅ OPTIMIZATION: Use reference data hooks with caching
+  const {
+    data: allSongs,
+    loading: songsLoading,
+    fetchData: fetchSongs,
+  } = useReferenceData(songService.getAllSongs, {
+    cacheKey: 'songs_reference',
+    cacheTTL: 10 * 60 * 1000,
+    autoFetch: false,
+  });
+
+  const {
+    data: allAlbums,
+    loading: albumsLoading,
+    fetchData: fetchAlbums,
+  } = useReferenceData(albumService.getAllAlbums, {
+    cacheKey: 'albums_reference',
+    cacheTTL: 10 * 60 * 1000,
+    autoFetch: false,
+  });
+
+  const {
+    data: allArtists,
+    loading: artistsLoading,
+    fetchData: fetchArtists,
+  } = useReferenceData(artistService.getAllArtists, {
+    cacheKey: 'artists_reference',
+    cacheTTL: 10 * 60 * 1000,
+    autoFetch: false,
+  });
+
+  // Form and modal states
+  const [form] = Form.useForm();
   const [filters, setFilters] = useState({
     type: '',
     isActive: '',
@@ -72,62 +114,13 @@ const CategoriesManagement = () => {
   const [isContentModalVisible, setIsContentModalVisible] = useState(false);
   const [managingCategory, setManagingCategory] = useState(null);
   const [contentType, setContentType] = useState('songs'); // 'songs', 'albums', 'artists'
-  
-  // Songs
-  const [allSongs, setAllSongs] = useState([]);
   const [selectedSongIds, setSelectedSongIds] = useState([]);
-  
-  // Albums
-  const [allAlbums, setAllAlbums] = useState([]);
   const [selectedAlbumIds, setSelectedAlbumIds] = useState([]);
-  
-  // Artists
-  const [allArtists, setAllArtists] = useState([]);
   const [selectedArtistIds, setSelectedArtistIds] = useState([]);
-  
   const [contentSearchText, setContentSearchText] = useState('');
   const [contentLoading, setContentLoading] = useState(false);
 
-  // Fetch categories from API
-  const fetchCategories = async (params = {}) => {
-    try {
-      setLoading(true);
-      const response = await categoryService.getAllCategories({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        search: searchText,
-        type: filters.type,
-        isActive: filters.isActive,
-        isFeatured: filters.isFeatured,
-        sortBy: 'order',
-        sortOrder: 'asc',
-        ...params,
-      });
-
-      setCategories(response.data);
-      setPagination({
-        ...pagination,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message || 'Không thể tải danh sách danh mục');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load categories on component mount and when filters change
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchCategories();
-    }, 300); // Debounce search
-    
-    return () => clearTimeout(timer);
-  }, [searchText]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [pagination.current, pagination.pageSize, filters.type, filters.isActive, filters.isFeatured]);
+  // Data fetching is handled by useAdminData and useReferenceData hooks
 
   // Table columns
   const columns = [
@@ -303,7 +296,7 @@ const CategoriesManagement = () => {
       
       setIsDeleteModalVisible(false);
       setDeletingCategory(null);
-      fetchCategories();
+      refreshCategories();
     } catch (error) {
       message.error(error.message || 'Không thể xóa danh mục');
     } finally {
@@ -353,7 +346,7 @@ const CategoriesManagement = () => {
       setIsModalVisible(false);
       form.resetFields();
       setEditingCategory(null);
-      fetchCategories();
+      refreshCategories();
     } catch (error) {
       if (error.errorFields) {
         // Form validation error
@@ -370,13 +363,7 @@ const CategoriesManagement = () => {
     setSelectedIcon('🎵');
   };
 
-  const handleTableChange = (newPagination) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current,
-      pageSize: newPagination.pageSize,
-    });
-  };
+  // handleTableChange is provided by useAdminData hook
 
   // Content Management Handlers
   const handleManageContent = async (category) => {
@@ -499,7 +486,7 @@ const CategoriesManagement = () => {
       setSelectedAlbumIds([]);
       setSelectedArtistIds([]);
       setContentSearchText('');
-      fetchCategories();
+      refreshCategories();
     } catch (error) {
       message.error(error.message || 'Không thể cập nhật nội dung');
     } finally {

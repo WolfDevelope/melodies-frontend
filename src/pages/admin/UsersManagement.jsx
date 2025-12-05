@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Input, Tag, Modal, Select, Avatar, message, Space } from 'antd';
 import {
   SearchOutlined,
@@ -9,65 +9,41 @@ import {
   CrownOutlined,
 } from '@ant-design/icons';
 import userService from '../../services/userService';
+import useAdminData from '../../hooks/useAdminData';
 
 const { Option } = Select;
 
 const UsersManagement = () => {
-  const [searchText, setSearchText] = useState('');
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
+  // ✅ OPTIMIZATION: Use custom hook for data management
+  const {
+    data: users,
+    loading,
+    searchText,
+    pagination,
+    setSearchText,
+    handleTableChange,
+    refresh: refreshUsers,
+  } = useAdminData(userService.getAllUsers, {
+    cacheKey: 'admin_users',
+    cacheTTL: 2 * 60 * 1000, // 2 minutes (user data changes more frequently)
+    debounceDelay: 500,
+    errorMessage: 'Không thể tải danh sách người dùng',
   });
+
+  // Filter states
   const [filters, setFilters] = useState({
     role: '',
     isActive: '',
   });
+
+  // Modal states
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
   const [isRoleModalVisible, setIsRoleModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [selectedRole, setSelectedRole] = useState('');
 
-  // Fetch users from API
-  const fetchUsers = async (params = {}) => {
-    try {
-      setLoading(true);
-      const response = await userService.getAllUsers({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        search: searchText,
-        role: filters.role,
-        isActive: filters.isActive,
-        ...params,
-      });
-
-      setUsers(response.data);
-      setPagination({
-        ...pagination,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message || 'Không thể tải danh sách người dùng');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load users on component mount and when filters change
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchUsers();
-    }, 300); // Debounce search
-    
-    return () => clearTimeout(timer);
-  }, [searchText]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [pagination.current, pagination.pageSize, filters.role, filters.isActive]);
+  // Data fetching is handled by useAdminData hook
 
   // Table columns
   const columns = [
@@ -199,7 +175,7 @@ const UsersManagement = () => {
       setIsRoleModalVisible(false);
       setEditingUser(null);
       setSelectedRole('');
-      fetchUsers();
+      refreshUsers();
     } catch (error) {
       message.error(error.message || 'Không thể cập nhật vai trò');
     } finally {
@@ -212,7 +188,7 @@ const UsersManagement = () => {
       setLoading(true);
       await userService.updateUserStatus(user._id, !user.isActive);
       message.success(`Đã ${!user.isActive ? 'kích hoạt' : 'vô hiệu hóa'} người dùng thành công`);
-      fetchUsers();
+      refreshUsers();
     } catch (error) {
       message.error(error.message || 'Không thể cập nhật trạng thái');
     } finally {
@@ -234,7 +210,7 @@ const UsersManagement = () => {
       message.success('Đã xóa người dùng thành công');
       setIsDeleteModalVisible(false);
       setDeletingUser(null);
-      fetchUsers();
+      refreshUsers();
     } catch (error) {
       message.error(error.message || 'Không thể xóa người dùng');
     } finally {
@@ -247,13 +223,7 @@ const UsersManagement = () => {
     setDeletingUser(null);
   };
 
-  const handleTableChange = (newPagination) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current,
-      pageSize: newPagination.pageSize,
-    });
-  };
+  // handleTableChange is provided by useAdminData hook
 
   return (
     <div className="space-y-6">

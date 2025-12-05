@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Input, Tag, Modal, Form, Upload, Select, message, Avatar } from 'antd';
 import {
   PlusOutlined,
@@ -9,61 +9,37 @@ import {
   InboxOutlined,
 } from '@ant-design/icons';
 import artistService from '../../services/artistService';
+import useAdminData from '../../hooks/useAdminData';
 
 const { Option } = Select;
 const { Dragger } = Upload;
 const { TextArea } = Input;
 
 const ArtistsManagement = () => {
-  const [searchText, setSearchText] = useState('');
+  // ✅ OPTIMIZATION: Use custom hook for data management
+  const {
+    data: artists,
+    loading,
+    searchText,
+    pagination,
+    setSearchText,
+    handleTableChange,
+    refresh: refreshArtists,
+  } = useAdminData(artistService.getAllArtists, {
+    cacheKey: 'admin_artists',
+    cacheTTL: 3 * 60 * 1000, // 3 minutes
+    debounceDelay: 500,
+    errorMessage: 'Không thể tải danh sách nghệ sĩ',
+  });
+
+  // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [deletingArtist, setDeletingArtist] = useState(null);
   const [editingArtist, setEditingArtist] = useState(null);
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [artists, setArtists] = useState([]);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
 
-  // Fetch artists from API
-  const fetchArtists = async (params = {}) => {
-    try {
-      setLoading(true);
-      const response = await artistService.getAllArtists({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        search: searchText,
-        ...params,
-      });
-
-      setArtists(response.data);
-      setPagination({
-        ...pagination,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message || 'Không thể tải danh sách nghệ sĩ');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load artists on component mount and when search/pagination changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchArtists();
-    }, 300); // Debounce search
-    
-    return () => clearTimeout(timer);
-  }, [searchText]);
-
-  useEffect(() => {
-    fetchArtists();
-  }, [pagination.current, pagination.pageSize]);
+  // Data fetching is handled by useAdminData hook
 
   // Handlers
   const handleAdd = () => {
@@ -96,7 +72,7 @@ const ArtistsManagement = () => {
       message.success('Đã xóa nghệ sĩ thành công');
       setIsDeleteModalVisible(false);
       setDeletingArtist(null);
-      fetchArtists();
+      refreshArtists();
     } catch (error) {
       console.error('Delete error:', error);
       message.error(error.message || 'Không thể xóa nghệ sĩ');
@@ -126,7 +102,7 @@ const ArtistsManagement = () => {
       
       setIsModalVisible(false);
       form.resetFields();
-      fetchArtists();
+      refreshArtists();
     } catch (error) {
       if (error.errorFields) {
         // Form validation error
@@ -141,13 +117,7 @@ const ArtistsManagement = () => {
     form.resetFields();
   };
 
-  const handleTableChange = (newPagination) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current,
-      pageSize: newPagination.pageSize,
-    });
-  };
+  // handleTableChange is provided by useAdminData hook
 
   // Table columns
   const columns = [

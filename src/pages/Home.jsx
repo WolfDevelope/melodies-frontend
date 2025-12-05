@@ -1,64 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Spin, message } from 'antd';
-import Header from '../components/common/Header';
 import ContentSection from '../components/common/ContentSection';
 import MusicCard from '../components/common/MusicCard';
 import PlaylistCard from '../components/common/PlaylistCard';
-import Footer from '../components/common/Footer';
-import MusicPlayer from '../components/common/MusicPlayer';
-import Sidebar from '../components/common/Sidebar';
 import homeService from '../services/homeService';
-import { getCachedData, setCachedData, CACHE_KEYS } from '../utils/cache';
 
 const Home = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { currentTrack, setCurrentTrack, sidebarCollapsed } = useOutletContext();
   const [loading, setLoading] = useState(true);
   const [homeData, setHomeData] = useState(null);
-  const [expandedCategoryId, setExpandedCategoryId] = useState(null); // Track which category is expanded
-  const [contentTypeFilter, setContentTypeFilter] = useState('all'); // Filter by content type: 'all', 'songs', 'albums', 'artists'
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Current playing track state
-  const [currentTrack, setCurrentTrack] = useState({
-    id: 1,
-    title: 'greedy',
-    artist: 'Tale McRae',
-    image: 'https://i.scdn.co/image/ab67616d00001e0221d586ad830dd93b2703b139',
-    audioUrl: './assets/music/Tate McRae - greedy (Official Video).mp3', // Demo audio URL
-  });
+  const [expandedCategoryId, setExpandedCategoryId] = useState(null);
+  const [contentTypeFilter, setContentTypeFilter] = useState('all');
 
-  // Handle search query change with navigation
-  const handleSearchQueryChange = (value) => {
-    setSearchQuery(value);
-    
-    // Navigate to search page with query param when user types
-    if (value.trim()) {
-      navigate(`/search?q=${encodeURIComponent(value)}`);
-    }
-  };
-
-  // Force refresh data (clear cache and refetch)
-  const handleRefreshData = async () => {
+  // Fetch homepage data with caching
+  const fetchHomeData = async () => {
     try {
       setLoading(true);
-      // Clear cache
-      sessionStorage.removeItem(CACHE_KEYS.HOME_PAGE_DATA);
-      sessionStorage.removeItem(`${CACHE_KEYS.HOME_PAGE_DATA}Timestamp`);
+      
+      // Check cache first (5 minutes TTL)
+      const cacheKey = 'homepage_data';
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheTimestamp = sessionStorage.getItem(`${cacheKey}_timestamp`);
+      const now = Date.now();
+      const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+      
+      if (cachedData && cacheTimestamp && (now - parseInt(cacheTimestamp)) < CACHE_TTL) {
+        console.log('📦 Using cached homepage data');
+        setHomeData(JSON.parse(cachedData));
+        setLoading(false);
+        return;
+      }
       
       // Fetch fresh data
+      console.log('🔄 Fetching fresh homepage data...');
       const response = await homeService.getHomePageData();
+      
       if (response.success) {
+        console.log('✅ Homepage Data loaded');
         setHomeData(response.data);
-        setCachedData(CACHE_KEYS.HOME_PAGE_DATA, response.data);
-        message.success('Đã làm mới dữ liệu');
+        
+        // Cache the data
+        sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
+        sessionStorage.setItem(`${cacheKey}_timestamp`, now.toString());
       }
     } catch (error) {
-      console.error('Error refreshing homepage:', error);
-      message.error('Không thể làm mới dữ liệu');
+      console.error('Error loading homepage:', error);
+      message.error('Không thể tải dữ liệu trang chủ');
     } finally {
       setLoading(false);
     }
@@ -232,55 +221,11 @@ const Home = () => {
     },
   ];
 
-  // Fetch homepage data with caching
+  // Fetch homepage data on mount
   useEffect(() => {
-    const fetchHomeData = async () => {
-      try {
-        // Check cache first
-        const cachedData = getCachedData(CACHE_KEYS.HOME_PAGE_DATA);
-        
-        if (cachedData) {
-          console.log('📦 Using cached homepage data');
-          setHomeData(cachedData);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch fresh data
-        setLoading(true);
-        const response = await homeService.getHomePageData();
-        console.log('📊 Homepage API Response:', response);
-        if (response.success) {
-          console.log('✅ Homepage Data:', response.data);
-          setHomeData(response.data);
-          
-          // Cache the data
-          setCachedData(CACHE_KEYS.HOME_PAGE_DATA, response.data);
-        }
-      } catch (error) {
-        console.error('Error loading homepage:', error);
-        message.error('Không thể tải dữ liệu trang chủ');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchHomeData();
   }, []);
 
-  // Listen for Ctrl+R or F5 to force refresh
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ctrl+R or F5
-      if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
-        e.preventDefault();
-        handleRefreshData();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Helper function to convert category to card format
   const categoryToCard = (category) => ({
@@ -290,32 +235,29 @@ const Home = () => {
     description: category.description || `${category.songs?.length || 0} bài hát`,
   });
 
-  // Helper function to convert song to card format
-  const songToCard = (song) => ({
+  // ✅ OPTIMIZATION: Memoize helper functions to prevent recreation on every render
+  const songToCard = useMemo(() => (song) => ({
     id: song._id,
     image: song.thumbnail || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300',
     title: song.title,
     description: song.artist?.name || song.artist || 'Unknown Artist',
-  });
+  }), []);
 
-  // Helper function to convert album to card format
-  const albumToCard = (album) => ({
+  const albumToCard = useMemo(() => (album) => ({
     id: album._id,
     image: album.coverImage || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300',
     title: album.title,
     description: `${album.artist?.name || 'Various Artists'} • ${album.songs?.length || album.songCount || 0} bài hát`,
-  });
+  }), []);
 
-  // Helper function to convert artist to card format
-  const artistToCard = (artist) => ({
+  const artistToCard = useMemo(() => (artist) => ({
     id: artist._id,
     image: artist.image || artist.avatar || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=300',
     title: artist.name,
     description: `${artist.songs?.length || artist.songCount || 0} bài hát`,
-  });
+  }), []);
 
-  // Helper function to convert category to playlist card
-  const categoryToPlaylistCard = (category) => ({
+  const categoryToPlaylistCard = useMemo(() => (category) => ({
     id: category._id,
     title: category.name,
     description: category.description || `${category.songs?.length || 0} bài hát`,
@@ -323,26 +265,18 @@ const Home = () => {
       ? `linear-gradient(135deg, ${category.metadata.color} 0%, ${category.metadata.color}80 100%)`
       : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     icon: category.icon || '🎵',
-  });
+  }), []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#22172b] to-[#3d2a3f] flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <Spin size="large" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#22172b] to-[#3d2a3f] pb-24">
-      {/* Header/Navigation */}
-      <Header 
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchQueryChange}
-      />
-
-      {/* Main Content */}
-      <main className={`max-w-[1920px] mx-auto px-6 py-8 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+    <>
         {/* Tabs */}
         <div className="flex items-center space-x-4 mb-8">
           <button 
@@ -527,47 +461,7 @@ const Home = () => {
             </p>
           </div>
         )}
-      </main>
-
-      {/* Footer */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
-        <Footer />
-      </div>
-
-      {/* Sidebar - Thư viện */}
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        title="Thư viện"
-        menuItems={[
-          {
-            icon: <PlusOutlined />,
-            label: 'Tạo danh sách phát',
-            onClick: () => console.log('Create playlist'),
-          },
-        ]}
-        expandedContent={
-          <div>
-            <h3 className="text-gray-400 text-sm font-semibold mb-4 px-4">
-              Tạo danh sách phát đầu tiên của bạn
-            </h3>
-            <p className="text-white text-sm px-4 mb-4">
-              Chúng tôi sẽ giúp bạn tạo danh sách phát
-            </p>
-            <button className="w-full px-4 py-2 rounded-full bg-white text-black font-semibold hover:scale-105 transition-transform">
-              Tạo danh sách phát
-            </button>
-          </div>
-        }
-      />
-
-      {/* Music Player */}
-      <MusicPlayer
-        currentTrack={currentTrack}
-        onNext={() => console.log('Next track')}
-        onPrevious={() => console.log('Previous track')}
-      />
-    </div>
+    </>
   );
 };
 

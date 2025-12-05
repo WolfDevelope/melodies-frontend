@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { HomeOutlined, SearchOutlined, UserOutlined, ExportOutlined, CloseOutlined } from '@ant-design/icons';
+import { HomeOutlined, SearchOutlined, UserOutlined, ExportOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Dropdown } from 'antd';
 
 /**
@@ -23,9 +23,11 @@ const Header = ({
   const navigate = useNavigate();
   const location = useLocation();
   const searchInputRef = useRef(null);
+  const debounceTimerRef = useRef(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   
   // Check if current page is home or search
   const isHomePage = location.pathname === '/' || location.pathname === '/home';
@@ -44,24 +46,52 @@ const Header = ({
     }
   }, [isSearchPage]);
   
+
+  // Controlled Component - State management with debouncing
   const handleSearchChange = (value) => {
     if (onSearchChange) {
       // Controlled mode - parent handles navigation
       onSearchChange(value);
     } else {
-      // Uncontrolled mode - should not happen now
+      // Uncontrolled mode
       setLocalSearchQuery(value);
+    }
+
+    // Debouncing - Show loading state briefly
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (value.trim()) {
+      setSearchLoading(true);
+      debounceTimerRef.current = setTimeout(() => {
+        setSearchLoading(false);
+      }, 300);
+    } else {
+      setSearchLoading(false);
     }
   };
   
   const handleSearchFocus = () => {
     setIsSearchFocused(true);
-    // Don't auto-navigate on focus, only when typing
   };
   
   const handleClearSearch = () => {
     handleSearchChange('');
+    setSearchLoading(false);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
   };
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // User menu items
   const menuItems = [
@@ -194,13 +224,22 @@ const Header = ({
                   <span>Trang chủ</span>
                 </button>
                 
-                {/* Search Input */}
+                {/* Search Input with Suggestions */}
                 <div className="flex-1 max-w-xl relative">
                   <div className="relative flex items-center">
-                    <SearchOutlined 
-                      className="absolute left-4 text-gray-400 z-10" 
-                      style={{ fontSize: '20px' }}
-                    />
+                    {/* Loading State - Better UX */}
+                    {searchLoading ? (
+                      <LoadingOutlined 
+                        className="absolute left-4 text-gray-400 z-10" 
+                        style={{ fontSize: '20px' }}
+                        spin
+                      />
+                    ) : (
+                      <SearchOutlined 
+                        className="absolute left-4 text-gray-400 z-10" 
+                        style={{ fontSize: '20px' }}
+                      />
+                    )}
                     <input
                       ref={searchInputRef}
                       type="text"
@@ -213,7 +252,7 @@ const Header = ({
                     {currentSearchQuery && (
                       <button
                         onClick={handleClearSearch}
-                        className="absolute right-4 text-gray-400 hover:text-white transition-colors"
+                        className="absolute right-4 text-gray-400 hover:text-white transition-colors z-10"
                       >
                         <CloseOutlined style={{ fontSize: '16px' }} />
                       </button>

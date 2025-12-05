@@ -35,7 +35,7 @@ const Sidebar = ({
       
 
 
-      <div className={`space-y-4 ${isAdmin ? 'mt-4 px-4' : ''}`}>
+      <div className={`space-y-4 ${isAdmin ? 'mt-8 px-4' : ''}`}>
         {/* Title/Library Button with Collapse Icon (only for non-admin) */}
         {!isAdmin && (
           <div className="relative group">

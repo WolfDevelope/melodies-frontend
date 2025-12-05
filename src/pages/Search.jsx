@@ -1,11 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import { Spin } from 'antd';
-import Header from '../components/common/Header';
-import Footer from '../components/common/Footer';
-import MusicPlayer from '../components/common/MusicPlayer';
-import Sidebar from '../components/common/Sidebar';
 import MusicCard from '../components/common/MusicCard';
 import songService from '../services/songService';
 import albumService from '../services/albumService';
@@ -14,7 +9,7 @@ import artistService from '../services/artistService';
 const Search = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { currentTrack, setCurrentTrack, sidebarCollapsed } = useOutletContext();
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState({
@@ -22,85 +17,118 @@ const Search = () => {
     albums: [],
     artists: [],
   });
+  
+  // ✅ OPTIMIZATION: Refs for debouncing and caching
+  const debounceTimerRef = useRef(null);
+  const searchCacheRef = useRef(new Map());
 
   // Get search query from URL params
   const searchParams = new URLSearchParams(location.search);
   const searchQuery = searchParams.get('q') || '';
 
-  // Handle search query change with URL update
-  const handleSearchQueryChange = (value) => {
-    if (value.trim()) {
-      // Update URL with new query
-      navigate(`/search?q=${encodeURIComponent(value)}`, { replace: true });
-    } else {
-      // Navigate back to home when search is cleared
-      navigate('/home');
-    }
-  };
-  
-  // Current playing track state
-  const [currentTrack, setCurrentTrack] = useState({
-    id: 1,
-    title: 'greedy',
-    artist: 'Tale McRae',
-    image: 'https://i.scdn.co/image/ab67616d00001e0221d586ad830dd93b2703b139',
-    audioUrl: './assets/music/Tate McRae - greedy (Official Video).mp3',
-  });
-
-  // Perform search when query changes
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      performSearch(searchQuery);
-    } else {
+  // ✅ OPTIMIZATION: Memoized search function with caching and parallel requests
+  const performSearch = useCallback(async (query) => {
+    if (!query.trim()) {
       setSearchResults({ songs: [], albums: [], artists: [] });
+      return;
     }
-  }, [searchQuery]);
 
-  const performSearch = async (query) => {
     try {
       setLoading(true);
       
-      // Search songs
-      const songsResponse = await songService.getAllSongs({
-        search: query,
-        limit: 50,
-      });
+      // Check cache first (5 minutes TTL)
+      const cacheKey = `search_${query.toLowerCase()}`;
+      const cachedResult = searchCacheRef.current.get(cacheKey);
+      const now = Date.now();
+      const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
       
-      // Search albums (if service exists)
-      let albumsData = [];
-      try {
-        const albumsResponse = await albumService.getAllAlbums({
-          search: query,
-          limit: 20,
-        });
-        albumsData = albumsResponse.data || [];
-      } catch (error) {
-        console.log('Album search not available');
+      if (cachedResult && (now - cachedResult.timestamp) < CACHE_TTL) {
+        console.log('📦 Using cached search results for:', query);
+        setSearchResults(cachedResult.data);
+        setLoading(false);
+        return;
       }
       
-      // Search artists (if service exists)
-      let artistsData = [];
-      try {
-        const artistsResponse = await artistService.getAllArtists({
+      // ✅ OPTIMIZATION: Parallel API calls with Promise.all
+      console.log('🔍 Searching for:', query);
+      const [songsResponse, albumsResponse, artistsResponse] = await Promise.all([
+        songService.getAllSongs({
+          search: query,
+          limit: 50,
+        }).catch(err => {
+          console.error('Songs search error:', err);
+          return { songs: [] };
+        }),
+        
+        albumService.getAllAlbums({
           search: query,
           limit: 20,
-        });
-        artistsData = artistsResponse.data || [];
-      } catch (error) {
-        console.log('Artist search not available');
-      }
+        }).catch(err => {
+          console.error('Albums search error:', err);
+          return { data: [] };
+        }),
+        
+        artistService.getAllArtists({
+          search: query,
+          limit: 20,
+        }).catch(err => {
+          console.error('Artists search error:', err);
+          return { artists: [] };
+        }),
+      ]);
       
-      setSearchResults({
+      const results = {
         songs: songsResponse.songs || [],
-        albums: albumsData,
-        artists: artistsData,
+        albums: albumsResponse.data || [],
+        artists: artistsResponse.artists || [],
+      };
+      
+      // Cache the results
+      searchCacheRef.current.set(cacheKey, {
+        data: results,
+        timestamp: now,
       });
+      
+      // Limit cache size to 50 entries
+      if (searchCacheRef.current.size > 50) {
+        const firstKey = searchCacheRef.current.keys().next().value;
+        searchCacheRef.current.delete(firstKey);
+      }
+      
+      setSearchResults(results);
+      console.log('✅ Search completed:', results);
     } catch (error) {
       console.error('Search error:', error);
+      setSearchResults({ songs: [], albums: [], artists: [] });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // ✅ OPTIMIZATION: Debounced search with useEffect
+  useEffect(() => {
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (!searchQuery.trim()) {
+      setSearchResults({ songs: [], albums: [], artists: [] });
+      return;
+    }
+
+    // Debounce search by 300ms
+    debounceTimerRef.current = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 300);
+
+    // Cleanup
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery, performSearch]);
 
   const handlePlaySong = (song) => {
     setCurrentTrack({
@@ -112,7 +140,8 @@ const Search = () => {
     });
   };
 
-  const getFilteredResults = () => {
+  // ✅ OPTIMIZATION: Memoize filtered results to prevent recalculation
+  const filteredResults = useMemo(() => {
     switch (activeTab) {
       case 'songs':
         return { songs: searchResults.songs, albums: [], artists: [] };
@@ -123,25 +152,18 @@ const Search = () => {
       default:
         return searchResults;
     }
-  };
+  }, [activeTab, searchResults]);
 
-  const filteredResults = getFilteredResults();
-  const hasResults = filteredResults.songs.length > 0 || 
-                     filteredResults.albums.length > 0 || 
-                     filteredResults.artists.length > 0;
+  const hasResults = useMemo(
+    () => filteredResults.songs.length > 0 || 
+          filteredResults.albums.length > 0 || 
+          filteredResults.artists.length > 0,
+    [filteredResults]
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#22172b] to-[#3d2a3f] pb-24">
-      {/* Header with Search */}
-      <Header 
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchQueryChange}
-      />
-
-      {/* Main Content */}
-      <main className={`max-w-[1920px] mx-auto px-6 py-8 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
-        
-        {!searchQuery ? (
+    <>
+      {!searchQuery ? (
           /* Browse Categories - Before Search */
           <div>
             <h1 className="text-3xl font-bold text-white mb-8">Duyệt tìm tất cả</h1>
@@ -457,48 +479,8 @@ const Search = () => {
               </div>
             )}
           </div>
-        )}
-      </main>
-
-      {/* Footer */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
-        <Footer />
-      </div>
-
-      {/* Sidebar */}
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        title="Thư viện"
-        menuItems={[
-          {
-            icon: <PlusOutlined />,
-            label: 'Tạo danh sách phát',
-            onClick: () => console.log('Create playlist'),
-          },
-        ]}
-        expandedContent={
-          <div>
-            <h3 className="text-gray-400 text-sm font-semibold mb-4 px-4">
-              Tạo danh sách phát đầu tiên của bạn
-            </h3>
-            <p className="text-white text-sm px-4 mb-4">
-              Chúng tôi sẽ giúp bạn tạo danh sách phát
-            </p>
-            <button className="w-full px-4 py-2 rounded-full bg-white text-black font-semibold hover:scale-105 transition-transform">
-              Tạo danh sách phát
-            </button>
-          </div>
-        }
-      />
-
-      {/* Music Player */}
-      <MusicPlayer
-        currentTrack={currentTrack}
-        onNext={() => console.log('Next track')}
-        onPrevious={() => console.log('Previous track')}
-      />
-    </div>
+      )}
+    </>
   );
 };
 
