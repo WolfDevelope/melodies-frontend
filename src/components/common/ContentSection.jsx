@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 
 /**
  * ContentSection - Reusable section component for home page
- * Displays a title with optional "Show all" link and horizontal scrollable content
+ * Displays a title with optional "Show all" link/button and horizontal scrollable content
  */
-const ContentSection = ({ title, showAllLink, children }) => {
+const ContentSection = ({ title, showAllLink, onShowAll, children }) => {
   return (
     <div className="mb-12">
       {/* Section Header */}
@@ -13,13 +13,22 @@ const ContentSection = ({ title, showAllLink, children }) => {
         <h2 className="text-2xl font-bold text-white hover:underline cursor-pointer">
           {title}
         </h2>
-        {showAllLink && (
-          <Link 
-            to={showAllLink} 
-            className="text-sm font-semibold text-gray-400 hover:text-white transition-colors"
-          >
-            Hiển thị tất cả
-          </Link>
+        {(showAllLink || onShowAll) && (
+          onShowAll ? (
+            <button
+              onClick={onShowAll}
+              className="text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+            >
+              Hiển thị tất cả
+            </button>
+          ) : (
+            <Link 
+              to={showAllLink} 
+              className="text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+            >
+              Hiển thị tất cả
+            </Link>
+          )
         )}
       </div>
 

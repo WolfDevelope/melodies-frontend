@@ -14,6 +14,7 @@ import categoryService from '../../services/categoryService';
 import songService from '../../services/songService';
 import albumService from '../../services/albumService';
 import artistService from '../../services/artistService';
+import { clearCache, CACHE_KEYS } from '../../utils/cache';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -170,16 +171,23 @@ const CategoriesManagement = () => {
       width: 120,
       render: (type) => {
         const typeMap = {
-          playlist: { text: 'Playlist', color: 'blue' },
-          chart: { text: 'Bảng xếp hạng', color: 'red' },
-          genre: { text: 'Thể loại', color: 'green' },
-          mood: { text: 'Tâm trạng', color: 'purple' },
-          activity: { text: 'Hoạt động', color: 'orange' },
-          custom: { text: 'Tùy chỉnh', color: 'default' },
+          playlist: { text: 'Playlist', bg: '#1e40af' },        // Blue-800
+          chart: { text: 'Bảng xếp hạng', bg: '#dc2626' },      // Red-600
+          genre: { text: 'Thể loại', bg: '#16a34a' },           // Green-600
+          mood: { text: 'Tâm trạng', bg: '#9333ea' },           // Purple-600
+          activity: { text: 'Hoạt động', bg: '#ea580c' },       // Orange-600
+          custom: { text: 'Tùy chỉnh', bg: '#6b7280' },         // Gray-500
         };
         const typeInfo = typeMap[type] || typeMap.custom;
         return (
-          <Tag color={typeInfo.color} className="border-none">
+          <Tag
+            style={{
+              backgroundColor: typeInfo.bg,
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: '500',
+            }}
+          >
             {typeInfo.text}
           </Tag>
         );
@@ -191,7 +199,14 @@ const CategoriesManagement = () => {
       key: 'isActive',
       width: 100,
       render: (isActive) => (
-        <Tag color={isActive ? 'success' : 'error'} className="border-none">
+        <Tag
+          style={{
+            backgroundColor: isActive ? '#166534' : '#991b1b',
+            color: '#ffffff',
+            border: 'none',
+            fontWeight: '500',
+          }}
+        >
           {isActive ? 'Hoạt động' : 'Ẩn'}
         </Tag>
       ),
@@ -282,6 +297,10 @@ const CategoriesManagement = () => {
       setLoading(true);
       await categoryService.deleteCategory(deletingCategory._id);
       message.success('Đã xóa danh mục thành công');
+      
+      // Clear home page cache to force refresh
+      clearCache(CACHE_KEYS.HOME_PAGE_DATA);
+      
       setIsDeleteModalVisible(false);
       setDeletingCategory(null);
       fetchCategories();
@@ -327,6 +346,9 @@ const CategoriesManagement = () => {
         await categoryService.createCategory(categoryData);
         message.success('Đã thêm danh mục thành công');
       }
+      
+      // Clear home page cache to force refresh
+      clearCache(CACHE_KEYS.HOME_PAGE_DATA);
       
       setIsModalVisible(false);
       form.resetFields();
@@ -762,22 +784,13 @@ const CategoriesManagement = () => {
             />
           </Form.Item>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <Form.Item
               name="order"
               label="Thứ tự hiển thị"
               initialValue={0}
             >
               <Input type="number" size="large" min={0} />
-            </Form.Item>
-
-            <Form.Item
-              name="isActive"
-              label="Trạng thái"
-              valuePropName="checked"
-              initialValue={true}
-            >
-              <Switch checkedChildren="Hiện" unCheckedChildren="Ẩn" />
             </Form.Item>
 
             <Form.Item
@@ -789,6 +802,34 @@ const CategoriesManagement = () => {
               <Switch checkedChildren="Có" unCheckedChildren="Không" />
             </Form.Item>
           </div>
+
+          {/* Hidden field - isActive syncs with showOnHomepage */}
+          <Form.Item name="isActive" hidden valuePropName="checked" initialValue={true}>
+            <Switch />
+          </Form.Item>
+
+          {/* Status Info Display */}
+          <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.showOnHomepage !== currentValues.showOnHomepage}>
+            {({ getFieldValue }) => {
+              const showOnHomepage = getFieldValue('showOnHomepage');
+              return (
+                <div className="mb-4 p-3 rounded-lg border" style={{
+                  background: showOnHomepage ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  borderColor: showOnHomepage ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+                }}>
+                  <p className="text-sm flex items-center gap-2" style={{
+                    color: showOnHomepage ? '#22c55e' : '#ef4444'
+                  }}>
+                    <span>{showOnHomepage ? '✅' : '⚠️'}</span>
+                    <strong>Trạng thái:</strong> {showOnHomepage ? 'Hoạt động' : 'Ẩn'}
+                    <span className="text-gray-400 ml-2">
+                      (Tự động đồng bộ với hiển thị trang chủ)
+                    </span>
+                  </p>
+                </div>
+              );
+            }}
+          </Form.Item>
 
           {/* Homepage Display Settings */}
           <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
@@ -802,7 +843,14 @@ const CategoriesManagement = () => {
               valuePropName="checked"
               initialValue={false}
             >
-              <Switch checkedChildren="Có" unCheckedChildren="Không" />
+              <Switch 
+                checkedChildren="Có" 
+                unCheckedChildren="Không"
+                onChange={(checked) => {
+                  // Đồng bộ isActive với showOnHomepage
+                  form.setFieldsValue({ isActive: checked });
+                }}
+              />
             </Form.Item>
 
             <Form.Item

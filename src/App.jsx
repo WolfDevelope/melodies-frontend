@@ -13,6 +13,7 @@ import EditProfile from './pages/EditProfile'
 import ChangePassword from './pages/ChangePassword'
 import Home from './pages/Home'
 import Admin from './pages/Admin'
+import Search from './pages/Search'
 import './App.css'
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
         <Route path="/account/edit-profile" element={<EditProfile />} />
         <Route path="/account/change-password" element={<ChangePassword />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/search" element={<Search />} />
       </Routes>
     </Router>
   )

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { HomeOutlined, SearchOutlined, UserOutlined, ExportOutlined } from '@ant-design/icons';
+import { HomeOutlined, SearchOutlined, UserOutlined, ExportOutlined, CloseOutlined } from '@ant-design/icons';
 import { Dropdown } from 'antd';
 
 /**
@@ -9,14 +9,59 @@ import { Dropdown } from 'antd';
  * @param {boolean} showPremium - Show premium button (default: true)
  * @param {string} pageTitle - Custom page title to display instead of nav (optional)
  * @param {ReactNode} pageTitleIcon - Icon for page title (optional)
+ * @param {string} searchQuery - Search query from parent (optional)
+ * @param {function} onSearchChange - Callback when search changes (optional)
  */
-const Header = ({ showNav = true, showPremium = true, pageTitle = '', pageTitleIcon = null }) => {
+const Header = ({ 
+  showNav = true, 
+  showPremium = true, 
+  pageTitle = '', 
+  pageTitleIcon = null,
+  searchQuery = '',
+  onSearchChange = null 
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const searchInputRef = useRef(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   
-  // Check if current page is home
+  // Check if current page is home or search
   const isHomePage = location.pathname === '/' || location.pathname === '/home';
+  const isSearchPage = location.pathname === '/search';
+  
+  // Use controlled or uncontrolled search
+  const currentSearchQuery = onSearchChange ? searchQuery : localSearchQuery;
+
+  // Auto-focus search input on search page
+  useEffect(() => {
+    if (isSearchPage && searchInputRef.current) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isSearchPage]);
+  
+  const handleSearchChange = (value) => {
+    if (onSearchChange) {
+      // Controlled mode - parent handles navigation
+      onSearchChange(value);
+    } else {
+      // Uncontrolled mode - should not happen now
+      setLocalSearchQuery(value);
+    }
+  };
+  
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+    // Don't auto-navigate on focus, only when typing
+  };
+  
+  const handleClearSearch = () => {
+    handleSearchChange('');
+  };
 
   // User menu items
   const menuItems = [
@@ -136,7 +181,7 @@ const Header = ({ showNav = true, showPremium = true, pageTitle = '', pageTitleI
             
             {/* Navigation - Always show if showNav is true */}
             {showNav && (
-              <nav className="flex items-center space-x-4">
+              <nav className="flex items-center space-x-4 flex-1 max-w-3xl">
                 <button 
                   onClick={() => navigate('/home')}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors ${
@@ -148,13 +193,33 @@ const Header = ({ showNav = true, showPremium = true, pageTitle = '', pageTitleI
                   <HomeOutlined />
                   <span>Trang chủ</span>
                 </button>
-                <button 
-                  onClick={() => navigate('/search')}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <SearchOutlined />
-                  <span>Tìm kiếm</span>
-                </button>
+                
+                {/* Search Input */}
+                <div className="flex-1 max-w-xl relative">
+                  <div className="relative flex items-center">
+                    <SearchOutlined 
+                      className="absolute left-4 text-gray-400 z-10" 
+                      style={{ fontSize: '20px' }}
+                    />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={currentSearchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      onFocus={handleSearchFocus}
+                      placeholder="Bạn muốn phát nội dung gì?"
+                      className="w-full pl-12 pr-12 py-3 rounded-full bg-[#242424] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/20 hover:bg-[#2a2a2a] transition-colors"
+                    />
+                    {currentSearchQuery && (
+                      <button
+                        onClick={handleClearSearch}
+                        className="absolute right-4 text-gray-400 hover:text-white transition-colors"
+                      >
+                        <CloseOutlined style={{ fontSize: '16px' }} />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </nav>
             )}
 

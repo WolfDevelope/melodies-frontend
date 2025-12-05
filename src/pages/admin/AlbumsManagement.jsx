@@ -8,6 +8,7 @@ import {
   AppstoreOutlined,
 } from '@ant-design/icons';
 import albumService from '../../services/albumService';
+import artistService from '../../services/artistService';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -17,11 +18,15 @@ const AlbumsManagement = () => {
   const [searchText, setSearchText] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isQuickArtistModalVisible, setIsQuickArtistModalVisible] = useState(false);
   const [deletingAlbum, setDeletingAlbum] = useState(null);
   const [editingAlbum, setEditingAlbum] = useState(null);
   const [form] = Form.useForm();
+  const [quickArtistForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [albums, setAlbums] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [loadingArtists, setLoadingArtists] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -51,6 +56,35 @@ const AlbumsManagement = () => {
     }
   };
 
+  // Fetch artists from API
+  const fetchArtists = async () => {
+    try {
+      setLoadingArtists(true);
+      const response = await artistService.getAllArtists({
+        limit: 100, // Get all artists
+        status: 'active',
+      });
+      
+      // Handle different response structures
+      if (response.artists) {
+        setArtists(response.artists);
+      } else if (Array.isArray(response.data)) {
+        setArtists(response.data);
+      } else if (Array.isArray(response)) {
+        setArtists(response);
+      } else {
+        console.error('Unexpected response structure:', response);
+        setArtists([]);
+      }
+    } catch (error) {
+      console.error('Error fetching artists:', error);
+      message.error('Không thể tải danh sách nghệ sĩ');
+      setArtists([]);
+    } finally {
+      setLoadingArtists(false);
+    }
+  };
+
   // Load albums on component mount and when search/pagination changes
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -63,6 +97,11 @@ const AlbumsManagement = () => {
   useEffect(() => {
     fetchAlbums();
   }, [pagination.current, pagination.pageSize]);
+
+  // Load artists on component mount
+  useEffect(() => {
+    fetchArtists();
+  }, []);
 
   // Handlers
   const handleAdd = () => {
@@ -110,6 +149,49 @@ const AlbumsManagement = () => {
   const cancelDelete = () => {
     setIsDeleteModalVisible(false);
     setDeletingAlbum(null);
+  };
+
+  // Quick Artist Modal handlers
+  const handleOpenQuickArtistModal = () => {
+    quickArtistForm.resetFields();
+    setIsQuickArtistModalVisible(true);
+  };
+
+  const handleQuickArtistOk = async () => {
+    try {
+      const values = await quickArtistForm.validateFields();
+      
+      // Set default status if not provided
+      if (!values.status) {
+        values.status = 'active';
+      }
+      
+      setLoading(true);
+      await artistService.createArtist(values);
+      
+      message.success(`Đã tạo nghệ sĩ "${values.name}" thành công`);
+      
+      // Close modal
+      setIsQuickArtistModalVisible(false);
+      quickArtistForm.resetFields();
+      
+      // Refresh artists list
+      await fetchArtists();
+      
+    } catch (error) {
+      if (error.errorFields) {
+        // Form validation error
+        return;
+      }
+      message.error(error.message || 'Không thể tạo nghệ sĩ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickArtistCancel = () => {
+    setIsQuickArtistModalVisible(false);
+    quickArtistForm.resetFields();
   };
 
   const handleModalOk = async () => {
@@ -181,7 +263,11 @@ const AlbumsManagement = () => {
       title: 'Nghệ sĩ',
       dataIndex: 'artist',
       key: 'artist',
-      render: (artist) => <span className="text-gray-300">{artist}</span>,
+      render: (artist) => (
+        <span className="text-gray-300">
+          {artist?.name || artist || 'Unknown'}
+        </span>
+      ),
     },
     {
       title: 'Thể loại',
@@ -201,10 +287,12 @@ const AlbumsManagement = () => {
     },
     {
       title: 'Số bài hát',
-      dataIndex: 'totalTracks',
-      key: 'totalTracks',
-      render: (count) => (
-        <span className="text-white">{count || 0} bài</span>
+      dataIndex: 'songs',
+      key: 'songs',
+      render: (songs, record) => (
+        <span className="text-white">
+          {songs?.length || record.totalTracks || record.songCount || 0} bài
+        </span>
       ),
     },
     {
@@ -354,13 +442,51 @@ const AlbumsManagement = () => {
             <Input placeholder="Nhập tên album" size="large" />
           </Form.Item>
 
-          <Form.Item
-            name="artist"
-            label="Nghệ sĩ"
-            rules={[{ required: true, message: 'Vui lòng nhập tên nghệ sĩ' }]}
-          >
-            <Input placeholder="Nhập tên nghệ sĩ" size="large" />
-          </Form.Item>
+          <div className="flex gap-2 items-start">
+            <Form.Item
+              name="artist"
+              label="Nghệ sĩ"
+              rules={[{ required: true, message: 'Vui lòng chọn nghệ sĩ' }]}
+              style={{ flex: 1, marginBottom: 0 }}
+            >
+              <Select
+                placeholder="Chọn nghệ sĩ"
+                size="large"
+                showSearch
+                loading={loadingArtists}
+                optionFilterProp="label"
+                notFoundContent={loadingArtists ? 'Đang tải...' : 'Không tìm thấy'}
+                style={{ width: '100%' }}
+                popupMatchSelectWidth={false}
+              >
+                {artists?.map((artist) => (
+                  <Option 
+                    key={artist._id} 
+                    value={artist._id}
+                    label={artist.name}
+                  >
+                    <div style={{ 
+                      maxWidth: '400px',
+                      whiteSpace: 'normal',
+                      wordWrap: 'break-word',
+                      lineHeight: '1.5'
+                    }}>
+                      {artist.name}
+                    </div>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={handleOpenQuickArtistModal}
+              className="bg-gradient-to-r from-pink-500 to-purple-600 border-none flex-shrink-0"
+              title="Tạo nghệ sĩ mới"
+              style={{ marginTop: 30 }}
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Form.Item name="genre" label="Thể loại">
@@ -458,6 +584,56 @@ const AlbumsManagement = () => {
         <p className="text-gray-400 text-sm mt-2">
           Hành động này không thể hoàn tác.
         </p>
+      </Modal>
+
+      {/* Quick Artist Creation Modal */}
+      <Modal
+        title={
+          <span className="text-xl font-bold text-white">
+            Tạo nghệ sĩ nhanh
+          </span>
+        }
+        open={isQuickArtistModalVisible}
+        onOk={handleQuickArtistOk}
+        onCancel={handleQuickArtistCancel}
+        okText="Tạo nghệ sĩ"
+        cancelText="Hủy"
+        confirmLoading={loading}
+        className="admin-modal"
+        okButtonProps={{
+          className: 'bg-gradient-to-r from-pink-500 to-purple-600 border-none',
+        }}
+      >
+        <Form form={quickArtistForm} layout="vertical" className="mt-4">
+          <Form.Item
+            name="name"
+            label="Tên nghệ sĩ"
+            rules={[{ required: true, message: 'Vui lòng nhập tên nghệ sĩ' }]}
+          >
+            <Input placeholder="Nhập tên nghệ sĩ" size="large" />
+          </Form.Item>
+
+          <Form.Item name="genre" label="Thể loại">
+            <Select placeholder="Chọn thể loại (tùy chọn)" size="large" allowClear>
+              <Option value="Pop">Pop</Option>
+              <Option value="Ballad">Ballad</Option>
+              <Option value="Rock">Rock</Option>
+              <Option value="EDM">EDM</Option>
+              <Option value="R&B">R&B</Option>
+              <Option value="Rap">Rap</Option>
+              <Option value="Jazz">Jazz</Option>
+              <Option value="Classical">Classical</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="bio" label="Tiểu sử">
+            <TextArea
+              rows={3}
+              placeholder="Nhập tiểu sử nghệ sĩ (tùy chọn)"
+              size="large"
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

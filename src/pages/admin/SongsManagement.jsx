@@ -117,27 +117,27 @@ const SongsManagement = () => {
   // Table columns
   const columns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 80,
+      title: 'Ảnh bìa',
+      dataIndex: 'thumbnail',
+      key: 'thumbnail',
+      width: 100,
+      render: (thumbnail, record) => (
+        <img
+          src={thumbnail || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100'}
+          alt={record.title}
+          className="w-16 h-16 object-cover rounded"
+        />
+      ),
     },
     {
       title: 'Bài hát',
       key: 'song',
-      width: 300,
+      width: 250,
       render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <img
-            src={record.thumbnail}
-            alt={record.title}
-            className="w-12 h-12 rounded object-cover"
-          />
-          <div>
-            <div className="text-white font-medium">{record.title}</div>
-            <div className="text-gray-400 text-sm">
-              {record.artist?.name || record.artist}
-            </div>
+        <div>
+          <div className="text-white font-medium">{record.title}</div>
+          <div className="text-gray-400 text-sm">
+            {record.artist?.name || record.artist}
           </div>
         </div>
       ),
@@ -388,9 +388,15 @@ const SongsManagement = () => {
       console.error('❌ Error:', error);
       if (error.errorFields) {
         // Form validation error
+        message.error('Vui lòng kiểm tra lại thông tin');
         return;
       }
-      message.error(error.message || 'Có lỗi xảy ra');
+      // Display detailed error messages
+      if (error.errors && Array.isArray(error.errors)) {
+        error.errors.forEach(err => message.error(err));
+      } else {
+        message.error(error.message || 'Có lỗi xảy ra');
+      }
     }
   };
 
@@ -509,14 +515,23 @@ const SongsManagement = () => {
                 loading={loadingArtists}
                 optionFilterProp="label"
                 notFoundContent={loadingArtists ? 'Đang tải...' : 'Không tìm thấy'}
+                style={{ width: '100%' }}
+                popupMatchSelectWidth={false}
               >
                 {artists.map((artist) => (
                   <Option 
                     key={artist._id} 
-                    value={artist.name}
+                    value={artist._id}
                     label={artist.name}
                   >
-                    {artist.name}
+                    <div style={{ 
+                      maxWidth: '400px',
+                      whiteSpace: 'normal',
+                      wordWrap: 'break-word',
+                      lineHeight: '1.5'
+                    }}>
+                      {artist.name}
+                    </div>
                   </Option>
                 ))}
               </Select>
@@ -546,14 +561,23 @@ const SongsManagement = () => {
                   showSearch
                   loading={loadingAlbums}
                   optionFilterProp="label"
+                  style={{ width: '100%' }}
+                  popupMatchSelectWidth={false}
                 >
                   {albums.map((album) => (
                     <Option 
                       key={album._id} 
-                      value={album.title}
-                      label={`${album.title} - ${album.artist}`}
+                      value={album._id}
+                      label={`${album.title} - ${album.artist?.name || album.artist}`}
                     >
-                      {album.title} - {album.artist}
+                      <div style={{ 
+                        maxWidth: '400px',
+                        whiteSpace: 'normal',
+                        wordWrap: 'break-word',
+                        lineHeight: '1.5'
+                      }}>
+                        {album.title} - {album.artist?.name || album.artist}
+                      </div>
                     </Option>
                   ))}
                 </Select>
@@ -724,13 +748,51 @@ const SongsManagement = () => {
             <Input placeholder="Nhập tên album" size="large" />
           </Form.Item>
 
-          <Form.Item
-            name="artist"
-            label="Nghệ sĩ"
-            rules={[{ required: true, message: 'Vui lòng nhập tên nghệ sĩ' }]}
-          >
-            <Input placeholder="Nhập tên nghệ sĩ" size="large" />
-          </Form.Item> 
+          <div className="flex gap-2 items-start">
+            <Form.Item
+              name="artist"
+              label="Nghệ sĩ"
+              rules={[{ required: true, message: 'Vui lòng chọn nghệ sĩ' }]}
+              style={{ flex: 1, marginBottom: 0 }}
+            >
+              <Select
+                placeholder="Chọn nghệ sĩ"
+                size="large"
+                showSearch
+                loading={loadingArtists}
+                optionFilterProp="label"
+                notFoundContent={loadingArtists ? 'Đang tải...' : 'Không tìm thấy'}
+                style={{ width: '100%' }}
+                popupMatchSelectWidth={false}
+              >
+                {artists.map((artist) => (
+                  <Option 
+                    key={artist._id} 
+                    value={artist._id}
+                    label={artist.name}
+                  >
+                    <div style={{ 
+                      maxWidth: '400px',
+                      whiteSpace: 'normal',
+                      wordWrap: 'break-word',
+                      lineHeight: '1.5'
+                    }}>
+                      {artist.name}
+                    </div>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={handleOpenQuickArtistModal}
+              className="bg-gradient-to-r from-pink-500 to-purple-600 border-none flex-shrink-0"
+              title="Tạo nghệ sĩ mới"
+              style={{ marginTop: 30 }}
+            />
+          </div> 
 
           <Form.Item name="genre" label="Thể loại">
             <Select placeholder="Chọn thể loại (tùy chọn)" size="large" allowClear>

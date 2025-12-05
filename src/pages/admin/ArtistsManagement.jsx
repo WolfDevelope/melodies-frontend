@@ -152,43 +152,51 @@ const ArtistsManagement = () => {
   // Table columns
   const columns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 80,
+      title: 'Ảnh đại diện',
+      dataIndex: 'avatar',
+      key: 'avatar',
+      width: 100,
+      render: (avatar, record) => (
+        <img
+          src={avatar || record.image || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=100'}
+          alt={record.name}
+          className="w-16 h-16 object-cover rounded-full"
+        />
+      ),
     },
     {
       title: 'Nghệ sĩ',
       key: 'artist',
       render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <Avatar src={record.avatar} size={48} icon={<UserOutlined />} />
-          <div>
-            <div className="text-white font-medium flex items-center gap-2">
-              {record.name}
-              {record.verified && (
-                <span className="text-blue-500" title="Đã xác minh">✓</span>
-              )}
-            </div>
-            <div className="text-gray-400 text-sm">{record.genre}</div>
+        <div>
+          <div className="text-white font-medium flex items-center gap-2">
+            {record.name}
+            {record.verified && (
+              <span className="text-blue-500" title="Đã xác minh">✓</span>
+            )}
           </div>
+          <div className="text-gray-400 text-sm">{record.genre}</div>
         </div>
       ),
     },
     {
       title: 'Bài hát',
-      dataIndex: 'totalSongs',
-      key: 'totalSongs',
-      render: (count) => (
-        <span className="text-white">{count.toLocaleString()}</span>
+      dataIndex: 'songs',
+      key: 'songs',
+      render: (songs, record) => (
+        <span className="text-white">
+          {songs?.length || record.totalSongs || record.songCount || 0}
+        </span>
       ),
     },
     {
       title: 'Albums',
-      dataIndex: 'totalAlbums',
-      key: 'totalAlbums',
-      render: (count) => (
-        <span className="text-white">{count.toLocaleString()}</span>
+      dataIndex: 'albums',
+      key: 'albums',
+      render: (albums, record) => (
+        <span className="text-white">
+          {albums?.length || record.totalAlbums || record.albumCount || 0}
+        </span>
       ),
     },
     {
