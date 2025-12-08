@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Input, Select, DatePicker, Button, message, Modal } from 'antd';
-import { UserOutlined, LeftOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Input, Select, DatePicker, Button, message, Modal, Avatar, Upload } from 'antd';
+import { UserOutlined, LeftOutlined, DeleteOutlined, CameraOutlined } from '@ant-design/icons';
 import authService from '../services/authService';
 import ToastNotification from '../components/common/ToastNotification';
 import dayjs from 'dayjs';
 import ActionButtons from '../components/common/ActionButtons';
+import usePageTitle from '../hooks/usePageTitle';
 
 const { Option } = Select;
 
 const EditProfile = () => {
+  usePageTitle('Chỉnh sửa hồ sơ');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);

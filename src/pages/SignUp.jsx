@@ -4,8 +4,11 @@ import { Input, Button } from 'antd';
 import { GoogleOutlined, AppleOutlined } from '@ant-design/icons';
 import NotificationModal from '../components/common/NotificationModal';
 import authService from '../services/authService';
+import usePageTitle from '../hooks/usePageTitle';
 
 const SignUp = () => {
+  usePageTitle('Đăng ký');
+
   const [email, setEmail] = useState('');
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');

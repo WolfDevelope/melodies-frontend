@@ -6,8 +6,10 @@ import authService from '../services/authService';
 import ToastNotification from '../components/common/ToastNotification';
 import Footer from '../components/common/Footer';
 import { Link } from 'react-router-dom';
+import usePageTitle from '../hooks/usePageTitle';
 
 const Account = () => {
+  usePageTitle('Tài khoản');
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);

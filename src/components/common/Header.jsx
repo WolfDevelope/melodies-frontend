@@ -7,16 +7,12 @@ import { Dropdown } from 'antd';
  * Header - Reusable header component with navigation
  * @param {boolean} showNav - Show navigation buttons (default: true)
  * @param {boolean} showPremium - Show premium button (default: true)
- * @param {string} pageTitle - Custom page title to display instead of nav (optional)
- * @param {ReactNode} pageTitleIcon - Icon for page title (optional)
  * @param {string} searchQuery - Search query from parent (optional)
  * @param {function} onSearchChange - Callback when search changes (optional)
  */
 const Header = ({ 
   showNav = true, 
   showPremium = true, 
-  pageTitle = '', 
-  pageTitleIcon = null,
   searchQuery = '',
   onSearchChange = null 
 }) => {
@@ -260,14 +256,6 @@ const Header = ({
                   </div>
                 </div>
               </nav>
-            )}
-
-            {/* Page Title (if provided) */}
-            {pageTitle && (
-              <h2 className="text-white text-2xl font-bold flex items-center gap-3">
-                {pageTitleIcon && <span className="text-2xl">{pageTitleIcon}</span>}
-                {pageTitle}
-              </h2>
             )}
             
           </div>

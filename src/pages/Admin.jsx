@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Card, Statistic, Table, Button, Tag, Avatar, Input } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Statistic, Table, Button, Tag, Avatar, Input, Spin, message } from 'antd';
 import {
   DashboardOutlined,
   CustomerServiceOutlined,
@@ -23,151 +23,229 @@ import ArtistsManagement from './admin/ArtistsManagement';
 import AlbumsManagement from './admin/AlbumsManagement';
 import UsersManagement from './admin/UsersManagement';
 import CategoriesManagement from './admin/CategoriesManagement';
+import usePageTitle from '../hooks/usePageTitle';
+import songService from '../services/songService';
+import albumService from '../services/albumService';
+import artistService from '../services/artistService';
+import userService from '../services/userService';
+import categoryService from '../services/categoryService';
 
 const Admin = () => {
   const navigate = useNavigate();
   const [selectedMenu, setSelectedMenu] = useState('dashboard');
+  
+  // Dynamic title based on selected menu
+  const menuTitles = {
+    dashboard: 'Quản trị - Tổng quan',
+    songs: 'Quản trị - Bài hát',
+    albums: 'Quản trị - Albums',
+    artists: 'Quản trị - Nghệ sĩ',
+    categories: 'Quản trị - Danh mục',
+    users: 'Quản trị - Người dùng',
+  };
+  
+  usePageTitle(menuTitles[selectedMenu] || 'Quản trị');
   const [collapsed, setCollapsed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [dashboardData, setDashboardData] = useState({
+    stats: {
+      totalSongs: 0,
+      totalArtists: 0,
+      totalAlbums: 0,
+      totalUsers: 0,
+      totalCategories: 0,
+    },
+    recentItems: [],
+  });
 
-  // Mock data - Statistics
+  // Fetch dashboard data
+  useEffect(() => {
+    if (selectedMenu === 'dashboard') {
+      fetchDashboardData();
+    }
+  }, [selectedMenu]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch all statistics in parallel
+      const [songsRes, artistsRes, albumsRes, usersRes, categoriesRes] = await Promise.all([
+        songService.getAllSongs({ limit: 1 }),
+        artistService.getAllArtists({ limit: 1 }),
+        albumService.getAllAlbums({ limit: 1 }),
+        userService.getAllUsers({ limit: 1 }),
+        categoryService.getAllCategories({ limit: 1 }),
+      ]);
+
+      // Fetch recent items (songs, albums, artists, categories)
+      const [recentSongsRes, recentAlbumsRes, recentArtistsRes, recentCategoriesRes] = await Promise.all([
+        songService.getAllSongs({ limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
+        albumService.getAllAlbums({ limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
+        artistService.getAllArtists({ limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
+        categoryService.getAllCategories({ limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
+      ]);
+
+      // Combine all recent items and sort by creation date
+      const allRecentItems = [
+        ...(recentSongsRes.songs || []).map(item => ({ ...item, type: 'song', key: `song-${item._id}` })),
+        ...(recentAlbumsRes.data || []).map(item => ({ ...item, type: 'album', key: `album-${item._id}` })),
+        ...(recentArtistsRes.artists || recentArtistsRes.data || []).map(item => ({ ...item, type: 'artist', key: `artist-${item._id}` })),
+        ...(recentCategoriesRes.data || []).map(item => ({ ...item, type: 'category', key: `category-${item._id}` })),
+      ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
+
+      setDashboardData({
+        stats: {
+          totalSongs: songsRes.pagination?.total || 0,
+          totalArtists: artistsRes.pagination?.total || 0,
+          totalAlbums: albumsRes.pagination?.total || 0,
+          totalUsers: usersRes.pagination?.total || 0,
+          totalCategories: categoriesRes.pagination?.total || 0,
+        },
+        recentItems: allRecentItems,
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      message.error('Không thể tải dữ liệu dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Statistics cards data
   const stats = [
     {
       title: 'Tổng bài hát',
-      value: 1234,
+      value: dashboardData.stats.totalSongs,
       icon: <CustomerServiceOutlined />,
       color: '#ec4899',
     },
     {
       title: 'Nghệ sĩ',
-      value: 567,
+      value: dashboardData.stats.totalArtists,
       icon: <TeamOutlined />,
       color: '#8b5cf6',
     },
     {
       title: 'Albums',
-      value: 890,
+      value: dashboardData.stats.totalAlbums,
       icon: <AppstoreOutlined />,
       color: '#3b82f6',
     },
     {
       title: 'Người dùng',
-      value: 12345,
+      value: dashboardData.stats.totalUsers,
       icon: <UserOutlined />,
       color: '#10b981',
     },
   ];
 
-  // Mock data - Recent Songs
-  const recentSongs = [
-    {
-      key: '1',
-      id: 'S001',
-      title: 'Nơi này có anh',
-      artist: 'Sơn Tùng M-TP',
-      album: 'Sky Tour',
-      plays: 1234567,
-      likes: 45678,
-      duration: '4:32',
-      status: 'active',
-      image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100',
-    },
-    {
-      key: '2',
-      id: 'S002',
-      title: 'Lạc trôi',
-      artist: 'Sơn Tùng M-TP',
-      album: 'M-TP Ambition',
-      plays: 987654,
-      likes: 34567,
-      duration: '3:45',
-      status: 'active',
-      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100',
-    },
-    {
-      key: '3',
-      id: 'S003',
-      title: 'Chúng ta của hiện tại',
-      artist: 'Sơn Tùng M-TP',
-      album: 'Single',
-      plays: 876543,
-      likes: 23456,
-      duration: '5:12',
-      status: 'active',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100',
-    },
-  ];
+  // Helper function to format duration
+  const formatDuration = (seconds) => {
+    if (!seconds) return 'N/A';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
-  // Table columns
+  // Helper function to get type label
+  const getTypeLabel = (type) => {
+    const labels = {
+      song: 'Bài hát',
+      album: 'Album',
+      artist: 'Nghệ sĩ',
+      category: 'Danh mục',
+    };
+    return labels[type] || type;
+  };
+
+  // Helper function to get type color
+  const getTypeColor = (type) => {
+    const colors = {
+      song: '#ec4899',
+      album: '#3b82f6',
+      artist: '#8b5cf6',
+      category: '#10b981',
+    };
+    return colors[type] || '#6b7280';
+  };
+
+  // Table columns for recent items
   const columns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 80,
-    },
-    {
-      title: 'Bài hát',
-      key: 'song',
-      render: (_, record) => (
-        <div className="flex items-center gap-3">
-          <Avatar src={record.image} size={48} shape="square" />
-          <div>
-            <div className="text-white font-medium">{record.title}</div>
-            <div className="text-gray-400 text-sm">{record.artist}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: 'Album',
-      dataIndex: 'album',
-      key: 'album',
-    },
-    {
-      title: 'Lượt nghe',
-      dataIndex: 'plays',
-      key: 'plays',
-      render: (plays) => (
-        <span className="flex items-center gap-1">
-          <PlayCircleOutlined className="text-pink-500" />
-          {plays.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      title: 'Yêu thích',
-      dataIndex: 'likes',
-      key: 'likes',
-      render: (likes) => (
-        <span className="flex items-center gap-1">
-          <HeartOutlined className="text-pink-500" />
-          {likes.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      title: 'Thời lượng',
-      dataIndex: 'duration',
-      key: 'duration',
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
+      title: 'Loại',
+      dataIndex: 'type',
+      key: 'type',
+      width: 100,
+      render: (type) => (
         <Tag 
           style={{
-            backgroundColor: status === 'active' ? '#166534' : '#991b1b',
+            backgroundColor: getTypeColor(type),
             color: '#ffffff',
             border: 'none',
             fontWeight: '500'
           }}
         >
-          {status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
+          {getTypeLabel(type)}
         </Tag>
       ),
     },
-    
+    {
+      title: 'Thông tin',
+      key: 'info',
+      render: (_, record) => (
+        <div className="flex items-center gap-3">
+          <Avatar 
+            src={record.image || record.coverImage || record.avatar || record.icon} 
+            size={48} 
+            shape="square"
+            style={{ backgroundColor: getTypeColor(record.type) }}
+          >
+            {record.type === 'category' && record.icon}
+          </Avatar>
+          <div>
+            <div className="text-white font-medium">{record.title || record.name}</div>
+            <div className="text-gray-400 text-sm">
+              {record.type === 'song' && (record.artist?.name || record.artist)}
+              {record.type === 'album' && (record.artist?.name || record.artist)}
+              {record.type === 'artist' && `${record.songs?.length || 0} bài hát`}
+              {record.type === 'category' && record.contentType}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Thời gian tạo',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 180,
+      render: (date) => (
+        <span className="text-gray-300">
+          {new Date(date).toLocaleString('vi-VN')}
+        </span>
+      ),
+    },
+    {
+      title: 'Trạng thái',
+      key: 'status',
+      width: 120,
+      render: (_, record) => {
+        const isActive = record.status === 'active' || record.isActive !== false;
+        return (
+          <Tag 
+            style={{
+              backgroundColor: isActive ? '#166534' : '#991b1b',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: '500'
+            }}
+          >
+            {isActive ? 'Hoạt động' : 'Tạm dừng'}
+          </Tag>
+        );
+      },
+    },
   ];
 
   // Sidebar menu items
@@ -251,9 +329,7 @@ const Admin = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#22172b] to-[#3d2a3f]">
       {/* Header */}
       <Header 
-        showNav={true} 
-        pageTitle={pageInfo.title} 
-        pageTitleIcon={pageInfo.icon}
+        showNav={true}
       />
 
       {/* Sidebar */}
@@ -282,6 +358,7 @@ const Admin = () => {
         ) : selectedMenu === 'users' ? (
           <UsersManagement />
         ) : (
+          <Spin spinning={loading} tip="Đang tải dữ liệu...">
           <>
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -334,16 +411,17 @@ const Admin = () => {
           >
             <Table
               columns={columns}
-              dataSource={recentSongs}
+              dataSource={dashboardData.recentItems}
               pagination={{
                 pageSize: 10,
                 showSizeChanger: true,
-                showTotal: (total) => `Tổng ${total} bài hát`,
+                showTotal: (total) => `Tổng ${total} mục`,
               }}
               className="admin-table"
             />
           </Card>
           </>
+          </Spin>
         )}
       </main>
     </div>

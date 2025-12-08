@@ -4,8 +4,10 @@ import { Input, Button } from 'antd';
 import { GoogleOutlined, AppleOutlined, FacebookOutlined, MobileOutlined } from '@ant-design/icons';
 import authService from '../services/authService';
 import NotificationModal from '../components/common/NotificationModal';
+import usePageTitle from '../hooks/usePageTitle';
 
 const Login = () => {
+  usePageTitle('Đăng nhập');
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);

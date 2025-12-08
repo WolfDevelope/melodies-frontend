@@ -4,8 +4,10 @@ import { Input, Button, message } from 'antd';
 import { ArrowLeftOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import authService from '../services/authService';
 import NotificationModal from '../components/common/NotificationModal';
+import usePageTitle from '../hooks/usePageTitle';
 
 const LoginPassword = () => {
+  usePageTitle('Đăng nhập');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);

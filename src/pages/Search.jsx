@@ -5,8 +5,10 @@ import MusicCard from '../components/common/MusicCard';
 import songService from '../services/songService';
 import albumService from '../services/albumService';
 import artistService from '../services/artistService';
+import usePageTitle from '../hooks/usePageTitle';
 
 const Search = () => {
+  usePageTitle('Tìm kiếm');
   const navigate = useNavigate();
   const location = useLocation();
   const { currentTrack, setCurrentTrack, sidebarCollapsed } = useOutletContext();
@@ -73,14 +75,14 @@ const Search = () => {
           limit: 20,
         }).catch(err => {
           console.error('Artists search error:', err);
-          return { artists: [] };
+          return { data: [] };
         }),
       ]);
       
       const results = {
         songs: songsResponse.songs || [],
         albums: albumsResponse.data || [],
-        artists: artistsResponse.artists || [],
+        artists: artistsResponse.data || artistsResponse.artists || [],
       };
       
       // Cache the results
@@ -139,6 +141,87 @@ const Search = () => {
       audioUrl: song.src,
     });
   };
+
+  // Helper function to calculate relevance score
+  const calculateRelevance = useCallback((item, query, type) => {
+    const searchLower = query.toLowerCase().trim();
+    let score = 0;
+    
+    // Get the name/title to compare
+    const itemName = (item.name || item.title || '').toLowerCase();
+    const artistName = (item.artist?.name || item.artist || '').toLowerCase();
+    
+    // Base scoring for name/title match
+    if (itemName === searchLower) {
+      // Exact match
+      score += 100;
+    } else if (itemName.startsWith(searchLower)) {
+      // Starts with query
+      score += 50;
+    } else if (itemName.includes(searchLower)) {
+      // Contains query
+      score += 25;
+    }
+    
+    // Type-specific bonuses (prioritize artists when name matches)
+    if (type === 'artist') {
+      // Artists get higher priority when their name matches
+      if (itemName === searchLower) {
+        score += 200; // Exact artist name match gets highest priority
+      } else if (itemName.includes(searchLower)) {
+        score += 100; // Partial artist name match
+      }
+    } else if (type === 'album') {
+      // Albums get moderate priority
+      if (itemName === searchLower) {
+        score += 50; // Exact album match
+      } else if (artistName.includes(searchLower)) {
+        score += 30; // Album by matching artist
+      }
+    } else if (type === 'song') {
+      // Songs get lower priority for artist name matches
+      if (artistName === searchLower) {
+        score += 40; // Song by exact artist match
+      } else if (artistName.includes(searchLower)) {
+        score += 15; // Song by partial artist match
+      }
+    }
+    
+    return score;
+  }, []);
+
+  // Get the best matching result for "Top Result"
+  const topResult = useMemo(() => {
+    if (!searchQuery) return null;
+    
+    const candidates = [];
+    
+    // Score all items
+    searchResults.songs.forEach(song => {
+      const score = calculateRelevance(song, searchQuery, 'song');
+      if (score > 0) {
+        candidates.push({ item: song, type: 'song', score });
+      }
+    });
+    
+    searchResults.artists.forEach(artist => {
+      const score = calculateRelevance(artist, searchQuery, 'artist');
+      if (score > 0) {
+        candidates.push({ item: artist, type: 'artist', score });
+      }
+    });
+    
+    searchResults.albums.forEach(album => {
+      const score = calculateRelevance(album, searchQuery, 'album');
+      if (score > 0) {
+        candidates.push({ item: album, type: 'album', score });
+      }
+    });
+    
+    // Sort by score and return the best match
+    candidates.sort((a, b) => b.score - a.score);
+    return candidates[0] || null;
+  }, [searchResults, searchQuery, calculateRelevance]);
 
   // ✅ OPTIMIZATION: Memoize filtered results to prevent recalculation
   const filteredResults = useMemo(() => {
@@ -302,45 +385,64 @@ const Search = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column - Top Result, Artists, Albums */}
                 <div className="lg:col-span-1 space-y-8">
-                  {/* Top Result - First Song/Artist */}
-                  {(activeTab === 'all' || activeTab === 'songs' || activeTab === 'artists') && (
+                  {/* Top Result - Best Match Based on Relevance */}
+                  {(activeTab === 'all' || activeTab === 'songs' || activeTab === 'artists' || activeTab === 'albums') && topResult && (
                     <div>
                       <h2 className="text-2xl font-bold text-white mb-6">Kết quả hàng đầu</h2>
                       <div className="bg-[#181818] rounded-lg p-6 hover:bg-[#282828] transition-colors cursor-pointer">
-                        {filteredResults.songs[0] ? (
+                        {topResult.type === 'song' ? (
                           <div 
                             className="flex items-center gap-4"
-                            onClick={() => handlePlaySong(filteredResults.songs[0])}
+                            onClick={() => handlePlaySong(topResult.item)}
                           >
                             <img
-                              src={filteredResults.songs[0].thumbnail}
-                              alt={filteredResults.songs[0].title}
+                              src={topResult.item.thumbnail}
+                              alt={topResult.item.title}
                               className="w-20 h-20 rounded-lg object-cover"
                             />
                             <div className="flex-1 min-w-0">
                               <h3 className="text-2xl font-bold text-white mb-1 truncate">
-                                {filteredResults.songs[0].title}
+                                {topResult.item.title}
                               </h3>
                               <p className="text-gray-400 text-sm truncate">
-                                Bài hát • {filteredResults.songs[0].artist?.name || 'Unknown Artist'}
+                                Bài hát • {topResult.item.artist?.name || 'Unknown Artist'}
                               </p>
                             </div>
                           </div>
-                        ) : filteredResults.artists[0] && (
+                        ) : topResult.type === 'artist' ? (
                           <div 
                             className="flex items-center gap-4"
-                            onClick={() => navigate(`/artists/${filteredResults.artists[0]._id}`)}
+                            onClick={() => navigate(`/artists/${topResult.item._id}`)}
                           >
                             <img
-                              src={filteredResults.artists[0].image}
-                              alt={filteredResults.artists[0].name}
+                              src={topResult.item.image || topResult.item.avatar}
+                              alt={topResult.item.name}
                               className="w-20 h-20 rounded-full object-cover"
                             />
                             <div className="flex-1 min-w-0">
                               <h3 className="text-2xl font-bold text-white mb-1 truncate">
-                                {filteredResults.artists[0].name}
+                                {topResult.item.name}
                               </h3>
                               <p className="text-gray-400 text-sm">Nghệ sĩ</p>
+                            </div>
+                          </div>
+                        ) : topResult.type === 'album' && (
+                          <div 
+                            className="flex items-center gap-4"
+                            onClick={() => navigate(`/albums/${topResult.item._id}`)}
+                          >
+                            <img
+                              src={topResult.item.coverImage}
+                              alt={topResult.item.title}
+                              className="w-20 h-20 rounded-lg object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-2xl font-bold text-white mb-1 truncate">
+                                {topResult.item.title}
+                              </h3>
+                              <p className="text-gray-400 text-sm truncate">
+                                Album • {topResult.item.artist?.name || topResult.item.artist || 'Unknown Artist'}
+                              </p>
                             </div>
                           </div>
                         )}
@@ -415,17 +517,25 @@ const Search = () => {
                             onClick={() => handlePlaySong(song)}
                             className="flex items-center gap-4 p-3 rounded-lg hover:bg-[#282828] transition-colors cursor-pointer group"
                           >
-                            <span className="text-gray-400 text-sm w-8 text-center group-hover:hidden">
+                            <span className="text-gray-400 text-sm w-8 text-center">
                               {index + 1}
                             </span>
-                            <span className="text-white text-sm w-8 text-center hidden group-hover:block">
-                              ▶
-                            </span>
-                            <img
-                              src={song.thumbnail}
-                              alt={song.title}
-                              className="w-12 h-12 rounded object-cover"
-                            />
+                            <div className="relative w-12 h-12">
+                              <img
+                                src={song.thumbnail}
+                                alt={song.title}
+                                className="w-12 h-12 rounded object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/40 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <svg 
+                                  className="w-6 h-6 text-white" 
+                                  fill="currentColor" 
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              </div>
+                            </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="text-white font-medium truncate">{song.title}</h3>
                               <p className="text-gray-400 text-sm truncate">

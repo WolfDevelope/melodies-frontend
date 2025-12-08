@@ -5,8 +5,10 @@ import ContentSection from '../components/common/ContentSection';
 import MusicCard from '../components/common/MusicCard';
 import PlaylistCard from '../components/common/PlaylistCard';
 import homeService from '../services/homeService';
+import usePageTitle from '../hooks/usePageTitle';
 
 const Home = () => {
+  usePageTitle('Trang chủ');
   const navigate = useNavigate();
   const { currentTrack, setCurrentTrack, sidebarCollapsed } = useOutletContext();
   const [loading, setLoading] = useState(true);
