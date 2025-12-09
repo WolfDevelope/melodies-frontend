@@ -123,7 +123,7 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
   if (!currentTrack) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/10 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/10 z-[100]">
       <div className="px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Left: Track Info */}

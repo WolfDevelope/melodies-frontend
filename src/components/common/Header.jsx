@@ -207,10 +207,10 @@ const Header = ({
             
             {/* Navigation - Always show if showNav is true */}
             {showNav && (
-              <nav className="flex items-center space-x-4 flex-1 max-w-3xl">
+              <nav className="flex items-center space-x-4 flex-1 max-w-4xl">
                 <button 
                   onClick={() => navigate('/home')}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors ${
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-full transition-colors ${
                     isHomePage 
                       ? 'bg-white/10 text-white' 
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -221,7 +221,7 @@ const Header = ({
                 </button>
                 
                 {/* Search Input with Suggestions */}
-                <div className="flex-1 max-w-xl relative">
+                <div className="flex-1 max-w-2xl min-w-[480px] relative">
                   <div className="relative flex items-center">
                     {/* Loading State - Better UX */}
                     {searchLoading ? (
@@ -243,7 +243,10 @@ const Header = ({
                       onChange={(e) => handleSearchChange(e.target.value)}
                       onFocus={handleSearchFocus}
                       placeholder="Bạn muốn phát nội dung gì?"
-                      className="w-full pl-12 pr-12 py-3 rounded-full bg-[#242424] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/20 hover:bg-[#2a2a2a] transition-colors"
+                      className="w-full pl-12 pr-10 py-3 rounded-full bg-[#242424] text-white placeholder-gray-400 focus:outline-none hover:bg-[#2a2a2a] transition-colors border-none"
+                      style={{
+                        boxShadow: 'none',
+                      }}
                     />
                     {currentSearchQuery && (
                       <button

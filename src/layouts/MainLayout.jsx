@@ -5,12 +5,14 @@ import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import MusicPlayer from '../components/common/MusicPlayer';
 import Sidebar from '../components/common/Sidebar';
+import LibraryModal from '../components/common/LibraryModal';
 
 const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   
   // Current playing track state (shared across pages)
   const [currentTrack, setCurrentTrack] = useState({
@@ -77,6 +79,7 @@ const MainLayout = () => {
         <Sidebar
           collapsed={sidebarCollapsed}
           onCollapse={setSidebarCollapsed}
+          onExpandLibrary={() => setIsLibraryOpen(true)}
           title="Thư viện"
           menuItems={[
             {
@@ -109,6 +112,9 @@ const MainLayout = () => {
           onPrevious={() => console.log('Previous track')}
         />
       )}
+
+      {/* Library Modal - Render at top level */}
+      <LibraryModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
     </div>
   );
 };

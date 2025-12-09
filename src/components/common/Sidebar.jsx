@@ -1,10 +1,11 @@
 import React from 'react';
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { MenuFoldOutlined, MenuUnfoldOutlined, ArrowsAltOutlined } from '@ant-design/icons';
 
 /**
  * Sidebar Component - Collapsible sidebar for library/navigation
  * @param {boolean} collapsed - Sidebar collapsed state
  * @param {function} onCollapse - Callback when collapse state changes
+ * @param {function} onExpandLibrary - Callback when expand library button is clicked
  * @param {string} title - Sidebar title (default: "Thư viện")
  * @param {array} menuItems - Array of menu items to display
  * @param {ReactNode} expandedContent - Content to show when sidebar is expanded
@@ -15,6 +16,7 @@ import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 const Sidebar = ({
   collapsed = false,
   onCollapse,
+  onExpandLibrary,
   title = 'Thư viện',
   menuItems = [],
   expandedContent,
@@ -53,15 +55,26 @@ const Sidebar = ({
                 <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
                   <span className="font-semibold">{title}</span>
                 </button>
-                {/* Collapse Toggle Icon - Always visible */}
-                <button
-                  onClick={() => onCollapse && onCollapse(true)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 hover:scale-110 transition-all"
-                  style={{ color: '#ffffff' }}
-                  title="Thu gọn"
-                >
-                  <MenuFoldOutlined style={{ fontSize: '20px', color: '#ffffff' }} />
-                </button>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {/* Expand Library Button */}
+                  <button
+                    onClick={() => onExpandLibrary && onExpandLibrary()}
+                    className="hover:scale-110 transition-all p-1 hover:bg-white/10 rounded-full w-10 h-10"
+                    style={{ color: '#ffffff' }}
+                    title="Mở rộng thư viện"
+                  >
+                    <ArrowsAltOutlined style={{ fontSize: '18px', color: '#ffffff' }} />
+                  </button>
+                  {/* Collapse Toggle Icon */}
+                  <button
+                    onClick={() => onCollapse && onCollapse(true)}
+                    className="hover:scale-110 transition-all p-1 hover:bg-white/10 rounded-full w-10 h-10"
+                    style={{ color: '#ffffff' }}
+                    title="Thu gọn"
+                  >
+                    <MenuFoldOutlined style={{ fontSize: '18px', color: '#ffffff' }} />
+                  </button>
+                </div>
               </>
             )}
           </div>
