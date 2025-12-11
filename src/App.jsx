@@ -15,6 +15,8 @@ import ChangePassword from './pages/ChangePassword'
 import Home from './pages/Home'
 import Admin from './pages/Admin'
 import Search from './pages/Search'
+import CreatePlaylist from './pages/CreatePlaylist'
+import PlaylistDetail from './pages/PlaylistDetail'
 import './App.css'
 
 function App() {
@@ -41,6 +43,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/playlist/create" element={<CreatePlaylist />} />
+          <Route path="/playlist/:id" element={<PlaylistDetail />} />
           <Route path="/account" element={<Account />} />
           <Route path="/account/edit-profile" element={<EditProfile />} />
           <Route path="/account/change-password" element={<ChangePassword />} />

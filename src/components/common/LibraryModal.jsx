@@ -1,77 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SearchOutlined, ShrinkOutlined, PlusOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
-import { Input } from 'antd';
+import { Input, Spin, message } from 'antd';
 import MusicCard from './MusicCard';
+import playlistService from '../../services/playlistService';
+import artistService from '../../services/artistService';
 
 /**
  * LibraryModal - Full-screen library view
  * @param {boolean} isOpen - Modal open state
  * @param {function} onClose - Callback to close modal
+ * @param {function} onCreatePlaylist - Callback to create new playlist
  */
-const LibraryModal = ({ isOpen, onClose }) => {
+const LibraryModal = ({ isOpen, onClose, onCreatePlaylist }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('playlists');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [searchQuery, setSearchQuery] = useState('');
+  const [playlists, setPlaylists] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Create gradient image for liked songs
   const likedSongsImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300"%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23667eea;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23764ba2;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="300" height="300" fill="url(%23grad)"/%3E%3Cpath d="M150 220l-45-41C82 158 65 142 65 122c0-20 15-35 35-35 11 0 22 5 30 14 8-9 19-14 30-14 20 0 35 15 35 35 0 20-17 36-40 57l-45 41z" fill="white"/%3E%3C/svg%3E';
 
-  // Mock data - Replace with real data from API
-  const libraryItems = {
-    playlists: [
-      {
-        id: 1,
+  // Fetch playlists and artists when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchLibraryData();
+    }
+  }, [isOpen]);
+
+  const fetchLibraryData = async () => {
+    setLoading(true);
+    try {
+      // Fetch playlists and artists in parallel
+      const [playlistsRes, artistsRes] = await Promise.all([
+        playlistService.getUserPlaylists(),
+        artistService.getAllArtists(),
+      ]);
+
+      // Transform playlists data
+      const playlistsData = (playlistsRes.data || []).map(playlist => ({
+        id: playlist._id,
+        title: playlist.name,
+        type: `Danh sách phát • ${playlist.songs?.length || 0} bài hát`,
+        image: playlist.image || 'https://via.placeholder.com/300?text=Playlist',
+        songsCount: playlist.songs?.length || 0,
+      }));
+
+      // Add "Liked Songs" at the beginning
+      const likedSongsItem = {
+        id: 'liked-songs',
         title: 'Bài hát đã thích',
         type: 'Danh sách phát • Ẩn',
         image: likedSongsImage,
         isLiked: true,
-      },
-      {
-        id: 2,
-        title: 'Danh sách phát của tôi',
-        type: 'Danh sách phát • Ẩn',
-        image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300',
-      },
-      {
-        id: 3,
-        title: 'Sabrina Carpenter',
+      };
+
+      setPlaylists([likedSongsItem, ...playlistsData]);
+
+      // Transform artists data
+      const artistsData = (artistsRes.data || []).map(artist => ({
+        id: artist._id,
+        title: artist.name,
         type: 'Nghệ sĩ',
-        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+        image: artist.image || 'https://via.placeholder.com/300?text=Artist',
         isArtist: true,
-      },
-      {
-        id: 4,
-        title: 'Adele',
-        type: 'Nghệ sĩ',
-        image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300',
-        isArtist: true,
-      },
-      {
-        id: 5,
-        title: 'Danh sách phát của tôi #2',
-        type: 'Danh sách phát • Ẩn',
-        image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300',
-      },
-    ],
-    artists: [
-      {
-        id: 3,
-        title: 'Sabrina Carpenter',
-        type: 'Nghệ sĩ',
-        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
-        isArtist: true,
-      },
-      {
-        id: 4,
-        title: 'Adele',
-        type: 'Nghệ sĩ',
-        image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300',
-        isArtist: true,
-      },
-    ],
+      }));
+
+      setArtists(artistsData);
+    } catch (error) {
+      console.error('Error fetching library data:', error);
+      message.error('Không thể tải thư viện');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredItems = libraryItems[activeTab].filter(item =>
+  // Get current items based on active tab
+  const currentItems = activeTab === 'playlists' ? playlists : artists;
+
+  // Filter items based on search query
+  const filteredItems = currentItems.filter(item =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -98,7 +109,10 @@ const LibraryModal = ({ isOpen, onClose }) => {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-105 flex items-center gap-2">
+            <button 
+              onClick={onCreatePlaylist}
+              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-105 flex items-center gap-2"
+            >
               <PlusOutlined />
               <span className="font-semibold">Tạo</span>
             </button>
@@ -172,7 +186,18 @@ const LibraryModal = ({ isOpen, onClose }) => {
 
       {/* Content */}
       <div className="flex-1 px-6 pb-28 overflow-y-auto">
-        {viewMode === 'grid' ? (
+        {loading ? (
+          /* Loading State */
+          <div className="flex items-center justify-center h-64">
+            <Spin size="large" />
+          </div>
+        ) : filteredItems.length === 0 ? (
+          /* Empty State */
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <p className="text-gray-400 text-lg mb-2">Không tìm thấy kết quả</p>
+            <p className="text-gray-500 text-sm">Thử tìm kiếm với từ khóa khác</p>
+          </div>
+        ) : viewMode === 'grid' ? (
           /* Grid View */
           <div className=" grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-4 gap-6">
             {filteredItems.map((item) => (
@@ -182,7 +207,16 @@ const LibraryModal = ({ isOpen, onClose }) => {
                 title={item.title}
                 description={item.type}
                 type={item.isArtist ? 'circle' : 'square'}
-                onClick={() => console.log('Clicked:', item.title)}
+                onClick={() => {
+                  onClose();
+                  if (item.isArtist) {
+                    navigate(`/artist/${item.id}`);
+                  } else if (item.isLiked) {
+                    navigate('/liked-songs');
+                  } else {
+                    navigate(`/playlist/${item.id}`);
+                  }
+                }}
               />
             ))}
           </div>
@@ -192,6 +226,16 @@ const LibraryModal = ({ isOpen, onClose }) => {
             {filteredItems.map((item) => (
               <div
                 key={item.id}
+                onClick={() => {
+                  onClose();
+                  if (item.isArtist) {
+                    navigate(`/artist/${item.id}`);
+                  } else if (item.isLiked) {
+                    navigate('/liked-songs');
+                  } else {
+                    navigate(`/playlist/${item.id}`);
+                  }
+                }}
                 className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/10 transition-all cursor-pointer group"
               >
                 <div className="relative w-16 h-16 flex-shrink-0">
