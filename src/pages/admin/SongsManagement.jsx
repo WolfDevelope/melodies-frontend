@@ -64,6 +64,8 @@ const SongsManagement = () => {
   const [isQuickArtistModalVisible, setIsQuickArtistModalVisible] = useState(false);
   const [deletingSong, setDeletingSong] = useState(null);
   const [editingSong, setEditingSong] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [audioFileList, setAudioFileList] = useState([]);
   const [form] = Form.useForm();
   const [quickAlbumForm] = Form.useForm();
   const [quickArtistForm] = Form.useForm();
@@ -72,6 +74,7 @@ const SongsManagement = () => {
   const handleAdd = () => {
     setEditingSong(null);
     form.resetFields();
+    setAudioFileList([]);
     setIsModalVisible(true);
     // Fetch albums and artists only when needed
     if (albums.length === 0) fetchAlbums();
@@ -85,6 +88,18 @@ const SongsManagement = () => {
       artist: record.artist?._id || record.artist,
       album: record.album?._id || record.album,
     });
+    if (record?.audioUrl) {
+      setAudioFileList([
+        {
+          uid: '-1',
+          name: 'audio',
+          status: 'done',
+          url: record.audioUrl,
+        },
+      ]);
+    } else {
+      setAudioFileList([]);
+    }
     setIsModalVisible(true);
     // Fetch albums and artists only when needed
     if (albums.length === 0) fetchAlbums();
@@ -208,14 +223,14 @@ const SongsManagement = () => {
     setIsDeleteModalVisible(true);
   };
 
-  const confirmDelete = async () => {
+  const handleDeleteConfirm = async () => {
     if (!deletingSong) return;
-    
+
     try {
       const songId = deletingSong._id || deletingSong.id;
       console.log('Deleting song with ID:', songId);
-      
-      setLoading(true);
+
+      setActionLoading(true);
       await songService.deleteSong(songId);
       message.success('Đã xóa bài hát thành công');
       setIsDeleteModalVisible(false);
@@ -225,7 +240,7 @@ const SongsManagement = () => {
       console.error('Delete error:', error);
       message.error(error.message || 'Không thể xóa bài hát');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -251,7 +266,7 @@ const SongsManagement = () => {
         values.status = 'active';
       }
       
-      setLoading(true);
+      setActionLoading(true);
       await albumService.createAlbum(values);
       
       message.success(`Đã tạo album "${values.title}" thành công`);
@@ -261,7 +276,7 @@ const SongsManagement = () => {
       quickAlbumForm.resetFields();
       
       // Refresh albums list
-      await fetchAlbums();
+      await fetchAlbums(true);
       
     } catch (error) {
       if (error.errorFields) {
@@ -270,7 +285,7 @@ const SongsManagement = () => {
       }
       message.error(error.message || 'Không thể tạo album');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -294,7 +309,7 @@ const SongsManagement = () => {
         values.status = 'active';
       }
       
-      setLoading(true);
+      setActionLoading(true);
       await artistService.createArtist(values);
       
       message.success(`Đã tạo nghệ sĩ "${values.name}" thành công`);
@@ -304,7 +319,7 @@ const SongsManagement = () => {
       quickArtistForm.resetFields();
       
       // Refresh artists list
-      await fetchArtists();
+      await fetchArtists(true);
       
     } catch (error) {
       if (error.errorFields) {
@@ -313,7 +328,7 @@ const SongsManagement = () => {
       }
       message.error(error.message || 'Không thể tạo nghệ sĩ');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -363,6 +378,24 @@ const SongsManagement = () => {
   const handleModalCancel = () => {
     setIsModalVisible(false);
     form.resetFields();
+    setAudioFileList([]);
+  };
+
+  const handleAudioUploadRequest = async ({ file, onSuccess, onError }) => {
+    setActionLoading(true);
+    try {
+      const res = await songService.uploadAudio(file);
+      const audioUrl = res?.data?.audioUrl;
+      form.setFieldsValue({ audioUrl });
+      onSuccess(res, file);
+      message.success('Upload file nhạc thành công');
+    } catch (error) {
+      console.error('Audio upload error:', error);
+      onError(error);
+      message.error(error.message || 'Không thể upload file nhạc');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   // Table change handler is now provided by useAdminData hook
@@ -589,11 +622,21 @@ const SongsManagement = () => {
             </Select>
           </Form.Item>
 
+          <Form.Item name="audioUrl" hidden>
+            <Input />
+          </Form.Item>
+
           <Form.Item label="Tải lên file nhạc">
             <Dragger
               accept=".mp3,.wav,.flac"
               maxCount={1}
-              beforeUpload={() => false}
+              customRequest={handleAudioUploadRequest}
+              fileList={audioFileList}
+              onChange={({ fileList }) => setAudioFileList(fileList.slice(-1))}
+              onRemove={() => {
+                form.setFieldsValue({ audioUrl: undefined });
+                setAudioFileList([]);
+              }}
             >
               <p className="ant-upload-drag-icon">
                 <InboxOutlined style={{ color: '#ec4899' }} />
@@ -605,6 +648,25 @@ const SongsManagement = () => {
                 Hỗ trợ định dạng: MP3, WAV, FLAC
               </p>
             </Dragger>
+          </Form.Item>
+
+          <Form.Item shouldUpdate noStyle>
+            {() => {
+              const audioUrl = form.getFieldValue('audioUrl');
+              if (!audioUrl) return null;
+              return (
+                <div className="mb-4">
+                  <a
+                    href={audioUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-pink-400 hover:text-pink-300"
+                  >
+                    Mở file nhạc đã upload
+                  </a>
+                </div>
+              );
+            }}
           </Form.Item>
 
           <Form.Item
@@ -652,11 +714,11 @@ const SongsManagement = () => {
           </span>
         }
         open={isDeleteModalVisible}
-        onOk={confirmDelete}
+        onOk={handleDeleteConfirm}
         onCancel={cancelDelete}
         okText="Xóa"
         cancelText="Hủy"
-        confirmLoading={loading}
+        confirmLoading={actionLoading}
         className="admin-modal"
         okButtonProps={{
           danger: true,
@@ -687,7 +749,7 @@ const SongsManagement = () => {
         onCancel={handleQuickAlbumCancel}
         okText="Tạo album"
         cancelText="Hủy"
-        confirmLoading={loading}
+        confirmLoading={actionLoading}
         className="admin-modal"
         okButtonProps={{
           className: 'bg-gradient-to-r from-pink-500 to-purple-600 border-none',
@@ -791,7 +853,7 @@ const SongsManagement = () => {
         onCancel={handleQuickArtistCancel}
         okText="Tạo nghệ sĩ"
         cancelText="Hủy"
-        confirmLoading={loading}
+        confirmLoading={actionLoading}
         className="admin-modal"
         okButtonProps={{
           className: 'bg-gradient-to-r from-pink-500 to-purple-600 border-none',

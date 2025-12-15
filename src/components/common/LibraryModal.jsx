@@ -5,6 +5,7 @@ import { Input, Spin, message } from 'antd';
 import MusicCard from './MusicCard';
 import playlistService from '../../services/playlistService';
 import artistService from '../../services/artistService';
+import albumService from '../../services/albumService';
 
 /**
  * LibraryModal - Full-screen library view
@@ -19,7 +20,13 @@ const LibraryModal = ({ isOpen, onClose, onCreatePlaylist }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [playlists, setPlaylists] = useState([]);
   const [artists, setArtists] = useState([]);
+  const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const isLikedPlaylistName = (name) => {
+    const n = (name || '').toLowerCase().trim();
+    return n === 'bài hát yêu thích' || n === 'bài hát đã thích' || n === 'liked songs';
+  };
 
   // Create gradient image for liked songs
   const likedSongsImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300"%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23667eea;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23764ba2;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="300" height="300" fill="url(%23grad)"/%3E%3Cpath d="M150 220l-45-41C82 158 65 142 65 122c0-20 15-35 35-35 11 0 22 5 30 14 8-9 19-14 30-14 20 0 35 15 35 35 0 20-17 36-40 57l-45 41z" fill="white"/%3E%3C/svg%3E';
@@ -35,13 +42,19 @@ const LibraryModal = ({ isOpen, onClose, onCreatePlaylist }) => {
     setLoading(true);
     try {
       // Fetch playlists and artists in parallel
-      const [playlistsRes, artistsRes] = await Promise.all([
+      const [playlistsRes, followedArtistsRes, favoriteAlbumsRes] = await Promise.all([
         playlistService.getUserPlaylists(),
-        artistService.getAllArtists(),
+        artistService.getFollowedArtists(),
+        albumService.getFavoriteAlbums(),
       ]);
 
+      const rawPlaylists = playlistsRes.data || [];
+      const likedPlaylist = rawPlaylists.find((p) => isLikedPlaylistName(p?.name));
+
       // Transform playlists data
-      const playlistsData = (playlistsRes.data || []).map(playlist => ({
+      const playlistsData = rawPlaylists
+        .filter((playlist) => String(playlist?._id) !== String(likedPlaylist?._id))
+        .map(playlist => ({
         id: playlist._id,
         title: playlist.name,
         type: `Danh sách phát • ${playlist.songs?.length || 0} bài hát`,
@@ -49,27 +62,39 @@ const LibraryModal = ({ isOpen, onClose, onCreatePlaylist }) => {
         songsCount: playlist.songs?.length || 0,
       }));
 
-      // Add "Liked Songs" at the beginning
-      const likedSongsItem = {
-        id: 'liked-songs',
-        title: 'Bài hát đã thích',
-        type: 'Danh sách phát • Ẩn',
-        image: likedSongsImage,
-        isLiked: true,
-      };
+      const likedSongsItem = likedPlaylist?._id
+        ? {
+            id: likedPlaylist._id,
+            title: likedPlaylist.name || 'Bài hát yêu thích',
+            type: `Danh sách phát • ${likedPlaylist.songs?.length || 0} bài hát`,
+            image: likedSongsImage,
+            songsCount: likedPlaylist.songs?.length || 0,
+            isLiked: true,
+          }
+        : null;
 
-      setPlaylists([likedSongsItem, ...playlistsData]);
+      setPlaylists(likedSongsItem ? [likedSongsItem, ...playlistsData] : playlistsData);
 
       // Transform artists data
-      const artistsData = (artistsRes.data || []).map(artist => ({
-        id: artist._id,
-        title: artist.name,
-        type: 'Nghệ sĩ',
-        image: artist.image || 'https://via.placeholder.com/300?text=Artist',
-        isArtist: true,
-      }));
+      const artistsData = (followedArtistsRes.data || []).map(artist => ({
+          id: artist._id,
+          title: artist.name,
+          type: 'Nghệ sĩ',
+          image: artist.image || 'https://via.placeholder.com/300?text=Artist',
+          isArtist: true,
+        }));
 
       setArtists(artistsData);
+
+      const albumsData = (favoriteAlbumsRes.data || []).map((album) => ({
+        id: album._id,
+        title: album.title,
+        type: 'Album',
+        image: album.coverImage || 'https://via.placeholder.com/300?text=Album',
+        isAlbum: true,
+      }));
+
+      setAlbums(albumsData);
     } catch (error) {
       console.error('Error fetching library data:', error);
       message.error('Không thể tải thư viện');
@@ -79,7 +104,7 @@ const LibraryModal = ({ isOpen, onClose, onCreatePlaylist }) => {
   };
 
   // Get current items based on active tab
-  const currentItems = activeTab === 'playlists' ? playlists : artists;
+  const currentItems = activeTab === 'playlists' ? playlists : activeTab === 'artists' ? artists : albums;
 
   // Filter items based on search query
   const filteredItems = currentItems.filter(item =>
@@ -161,6 +186,16 @@ const LibraryModal = ({ isOpen, onClose, onCreatePlaylist }) => {
             >
               Nghệ sĩ
             </button>
+            <button
+              onClick={() => setActiveTab('albums')}
+              className={`px-4 py-2 rounded-full transition-all ${
+                activeTab === 'albums'
+                  ? 'bg-white text-black font-semibold'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+            >
+              Album
+            </button>
           </div>
 
           {/* Search - Right */}
@@ -211,8 +246,10 @@ const LibraryModal = ({ isOpen, onClose, onCreatePlaylist }) => {
                   onClose();
                   if (item.isArtist) {
                     navigate(`/artist/${item.id}`);
+                  } else if (item.isAlbum) {
+                    navigate(`/album/${item.id}`);
                   } else if (item.isLiked) {
-                    navigate('/liked-songs');
+                    navigate(`/playlist/${item.id}`);
                   } else {
                     navigate(`/playlist/${item.id}`);
                   }
@@ -230,8 +267,10 @@ const LibraryModal = ({ isOpen, onClose, onCreatePlaylist }) => {
                   onClose();
                   if (item.isArtist) {
                     navigate(`/artist/${item.id}`);
+                  } else if (item.isAlbum) {
+                    navigate(`/album/${item.id}`);
                   } else if (item.isLiked) {
-                    navigate('/liked-songs');
+                    navigate(`/playlist/${item.id}`);
                   } else {
                     navigate(`/playlist/${item.id}`);
                   }

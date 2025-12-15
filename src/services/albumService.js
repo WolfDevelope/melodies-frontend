@@ -70,6 +70,32 @@ const albumService = {
   },
 
   /**
+   * Lấy danh sách album yêu thích
+   * @returns {Promise}
+   */
+  getFavoriteAlbums: () => {
+    return api.get('/albums/favorites');
+  },
+
+  /**
+   * Thêm album vào thư viện (yêu thích)
+   * @param {string} id - Album ID
+   * @returns {Promise}
+   */
+  favoriteAlbum: (id) => {
+    return api.post(`/albums/${id}/favorite`, {});
+  },
+
+  /**
+   * Xóa album khỏi thư viện (yêu thích)
+   * @param {string} id - Album ID
+   * @returns {Promise}
+   */
+  unfavoriteAlbum: (id) => {
+    return api.post(`/albums/${id}/unfavorite`, {});
+  },
+
+  /**
    * Lấy thống kê
    * @returns {Promise}
    */

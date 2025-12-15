@@ -17,6 +17,9 @@ import Admin from './pages/Admin'
 import Search from './pages/Search'
 import CreatePlaylist from './pages/CreatePlaylist'
 import PlaylistDetail from './pages/PlaylistDetail'
+import SongDetail from './pages/SongDetail'
+import ArtistDetail from './pages/ArtistDetail'
+import AlbumDetail from './pages/AlbumDetail'
 import './App.css'
 
 function App() {
@@ -43,6 +46,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/song/:id" element={<SongDetail />} />
+          <Route path="/artist/:id" element={<ArtistDetail />} />
+          <Route path="/album/:id" element={<AlbumDetail />} />
           <Route path="/playlist/create" element={<CreatePlaylist />} />
           <Route path="/playlist/:id" element={<PlaylistDetail />} />
           <Route path="/account" element={<Account />} />

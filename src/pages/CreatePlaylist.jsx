@@ -248,6 +248,7 @@ const CreatePlaylist = () => {
   const getAlbumName = (album) => {
     if (!album) return '-';
     if (typeof album === 'string') return album;
+    if (album.title) return album.title;
     if (album.name) return album.name;
     return '-';
   };

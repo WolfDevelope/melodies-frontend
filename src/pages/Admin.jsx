@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Statistic, Table, Button, Tag, Avatar, Input, Spin, message } from 'antd';
+import { Card, Statistic, Table, Button, Tag, Avatar, Input, message } from 'antd';
 import {
   DashboardOutlined,
   CustomerServiceOutlined,
@@ -358,70 +358,70 @@ const Admin = () => {
         ) : selectedMenu === 'users' ? (
           <UsersManagement />
         ) : (
-          <Spin spinning={loading} tip="Đang tải dữ liệu...">
           <>
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            {stats.map((stat, index) => (
-              <Card
-                key={index}
-                className="backdrop-blur-md border-white/10 hover:border-pink-500/50 transition-all hover:scale-105"
-                bodyStyle={{ padding: '24px' }}
-                style={{
-                  background: 'linear-gradient(to right, #653c51ff, #311051ff)',
-                  border: 'none'
-                }}
-              >
-                <Statistic
-                  title={
-                    <span className="text-white text-sm">{stat.title}</span>
-                  }
-                  value={stat.value}
-                  valueStyle={{
-                    color: stat.color,
-                    fontSize: '28px',
-                    fontWeight: 'bold',
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              {stats.map((stat, index) => (
+                <Card
+                  key={index}
+                  loading={loading}
+                  className="backdrop-blur-md border-white/10 hover:border-pink-500/50 transition-all hover:scale-105"
+                  bodyStyle={{ padding: '24px' }}
+                  style={{
+                    background: 'linear-gradient(to right, #653c51ff, #311051ff)',
+                    border: 'none'
                   }}
-                  prefix={
-                    <span style={{ color: stat.color, fontSize: '24px' }}>
-                      {stat.icon}
-                    </span>
-                  }
-                />
-              </Card>
-            ))}
-          </div>
+                >
+                  <Statistic
+                    title={
+                      <span className="text-white text-sm">{stat.title}</span>
+                    }
+                    value={stat.value}
+                    valueStyle={{
+                      color: stat.color,
+                      fontSize: '28px',
+                      fontWeight: 'bold',
+                    }}
+                    prefix={
+                      <span style={{ color: stat.color, fontSize: '24px' }}>
+                        {stat.icon}
+                      </span>
+                    }
+                  />
+                </Card>
+              ))}
+            </div>
 
-          {/* Recent Songs Table */}
-          <Card
-            className="backdrop-blur-md border-white/10"
-            style={{
-              background: 'linear-gradient(to right, #653c51ff, #311051ff)',
-              border: 'none'
-            }}
-            title={
-              <div className="flex items-center justify-between">
-                <span className="text-white text-lg font-semibold">
-                  Đã thêm gần đây
-                </span>
-                
-              </div>
-            }
-            bodyStyle={{ padding: '0' }}
-          >
-            <Table
-              columns={columns}
-              dataSource={dashboardData.recentItems}
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total) => `Tổng ${total} mục`,
+            {/* Recent Songs Table */}
+            <Card
+              className="backdrop-blur-md border-white/10"
+              style={{
+                background: 'linear-gradient(to right, #653c51ff, #311051ff)',
+                border: 'none'
               }}
-              className="admin-table"
-            />
-          </Card>
+              title={
+                <div className="flex items-center justify-between">
+                  <span className="text-white text-lg font-semibold">
+                    Đã thêm gần đây
+                  </span>
+                  
+                </div>
+              }
+              bodyStyle={{ padding: '0' }}
+            >
+              <Table
+                columns={columns}
+                dataSource={dashboardData.recentItems}
+                loading={loading}
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: true,
+                  showTotal: (total) => `Tổng ${total} mục`,
+                }}
+                className="admin-table"
+              />
+            </Card>
           </>
-          </Spin>
         )}
       </main>
     </div>

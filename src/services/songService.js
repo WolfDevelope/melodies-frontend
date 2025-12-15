@@ -1,5 +1,8 @@
 import api from './api';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+
 /**
  * Song API Service
  */
@@ -76,6 +79,36 @@ const songService = {
    */
   getStatistics: () => {
     return api.get('/songs/statistics');
+  },
+
+  uploadAudio: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/songs/upload-audio`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Không thể upload file nhạc');
+    }
+
+    const audioUrlPath = data?.data?.audioUrl;
+    if (!audioUrlPath) {
+      throw new Error('Upload thành công nhưng không nhận được audioUrl');
+    }
+
+    return {
+      ...data,
+      data: {
+        ...data.data,
+        audioUrl: audioUrlPath.startsWith('http')
+          ? audioUrlPath
+          : `${SERVER_BASE_URL}${audioUrlPath}`,
+      },
+    };
   },
 };
 

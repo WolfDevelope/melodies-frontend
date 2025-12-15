@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Slider } from 'antd';
 import {
   CaretRightOutlined,
@@ -22,6 +23,7 @@ import {
  * @param {function} onPrevious - Previous track handler
  */
 const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
+  const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -31,6 +33,26 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
   const [isRepeat, setIsRepeat] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const audioRef = useRef(null);
+
+  const trackTitle = currentTrack?.title || '';
+  const trackArtist = currentTrack?.artist?.name || currentTrack?.artist || '';
+  const trackImage =
+    currentTrack?.thumbnail ||
+    currentTrack?.image ||
+    currentTrack?.coverImage ||
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100';
+  const trackAudioUrl = currentTrack?.audioUrl || currentTrack?.src || '';
+  const trackId = currentTrack?._id || currentTrack?.id || '';
+
+  const handleAudioError = (e) => {
+    const mediaError = e?.currentTarget?.error;
+    console.error('Audio element error:', {
+      src: e?.currentTarget?.src,
+      code: mediaError?.code,
+      message: mediaError?.message,
+      error: mediaError,
+    });
+  };
 
   // Format time to MM:SS
   const formatTime = (seconds) => {
@@ -45,10 +67,27 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
-        audioRef.current.play();
+        if (!audioRef.current.src) {
+          console.warn('Audio play requested but audio src is empty', {
+            trackAudioUrl,
+            currentTrack,
+          });
+          return;
+        }
+        const playPromise = audioRef.current.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise
+            .then(() => setIsPlaying(true))
+            .catch((err) => {
+              console.error('Audio play error:', err);
+              setIsPlaying(false);
+            });
+        } else {
+          setIsPlaying(true);
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -104,7 +143,10 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
   const handleEnded = () => {
     if (isRepeat) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play();
+      const playPromise = audioRef.current.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((err) => console.error('Audio replay error:', err));
+      }
     } else {
       onNext && onNext();
     }
@@ -112,13 +154,21 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
 
   // Update audio source when track changes
   useEffect(() => {
-    if (audioRef.current && currentTrack?.audioUrl) {
-      audioRef.current.src = currentTrack.audioUrl;
-      if (isPlaying) {
-        audioRef.current.play();
-      }
+    if (audioRef.current && trackAudioUrl) {
+      const audioEl = audioRef.current;
+      audioEl.src = trackAudioUrl;
+      audioEl.load();
+      setCurrentTime(0);
+      setDuration(0);
+
+      // Do not auto-play here; keep playback controlled by user gesture (togglePlay)
     }
-  }, [currentTrack]);
+  }, [trackAudioUrl]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.volume = (isMuted ? 0 : volume) / 100;
+  }, [volume, isMuted]);
 
   if (!currentTrack) return null;
 
@@ -129,16 +179,16 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
           {/* Left: Track Info */}
           <div className="flex items-center gap-4 w-1/4 min-w-[180px]">
             <img
-              src={currentTrack.image}
-              alt={currentTrack.title}
+              src={trackImage}
+              alt={trackTitle}
               className="w-14 h-14 rounded object-cover"
             />
             <div className="flex-1 min-w-0">
               <h4 className="text-white text-sm font-medium truncate hover:underline cursor-pointer">
-                {currentTrack.title}
+                {trackTitle}
               </h4>
               <p className="text-gray-400 text-xs truncate hover:underline cursor-pointer">
-                {currentTrack.artist}
+                {trackArtist}
               </p>
             </div>
             <button
@@ -231,7 +281,14 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
 
           {/* Right: Volume & Other Controls */}
           <div className="flex items-center gap-3 w-1/4 justify-end">
-            <button className="text-gray-400 hover:text-white transition-colors">
+            <button
+              onClick={() => {
+                if (!trackId) return;
+                navigate(`/song/${trackId}`);
+              }}
+              className="text-gray-400 hover:text-white transition-colors"
+              title="Mở trang bài hát"
+            >
               <ExpandOutlined className="text-base" />
             </button>
             <button className="text-gray-400 hover:text-white transition-colors">
@@ -265,6 +322,7 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
+        onError={handleAudioError}
       />
     </div>
   );

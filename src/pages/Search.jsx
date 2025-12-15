@@ -134,11 +134,12 @@ const Search = () => {
 
   const handlePlaySong = (song) => {
     setCurrentTrack({
-      id: song._id,
+      _id: song._id,
       title: song.title,
-      artist: song.artist?.name || 'Unknown',
-      image: song.thumbnail,
-      audioUrl: song.src,
+      artist: song.artist,
+      thumbnail: song.thumbnail,
+      audioUrl: song.audioUrl,
+      duration: song.duration,
     });
   };
 

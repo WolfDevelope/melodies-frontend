@@ -70,6 +70,14 @@ const artistService = {
   },
 
   /**
+   * Lấy danh sách nghệ sĩ đã theo dõi
+   * @returns {Promise}
+   */
+  getFollowedArtists: () => {
+    return api.get('/artists/followed');
+  },
+
+  /**
    * Lấy thống kê
    * @returns {Promise}
    */

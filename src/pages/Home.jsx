@@ -16,6 +16,18 @@ const Home = () => {
   const [expandedCategoryId, setExpandedCategoryId] = useState(null);
   const [contentTypeFilter, setContentTypeFilter] = useState('all');
 
+  const handlePlaySong = (song) => {
+    if (!song) return;
+    setCurrentTrack({
+      _id: song._id,
+      title: song.title,
+      artist: song.artist,
+      thumbnail: song.thumbnail,
+      audioUrl: song.audioUrl,
+      duration: song.duration,
+    });
+  };
+
   // Fetch homepage data with caching
   const fetchHomeData = async () => {
     try {
@@ -55,174 +67,6 @@ const Home = () => {
     }
   };
 
-  // Mock data - Đề xuất cho bạn
-  const recommendations = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300',
-      title: 'Ký Ức Thập Niên 80',
-      description: 'Những khúc hát nhiều ký ức cuối thập niên 70 và...',
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300',
-      title: 'Mega Hit Mix',
-      description: 'A mega mix of 75 favorites from the last...',
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300',
-      title: 'Dòng Nhạc Hải Ngoại',
-      description: 'Những ca khúc hay nhất từ cộng đồng nghệ sĩ...',
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300',
-      title: 'Soft Pop Hits',
-      description: 'Warm familiar pop you know and love.',
-    },
-    {
-      id: 5,
-      image: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300',
-      title: 'Bolero Tuyển Phẩm',
-      description: 'Những ca khúc đế đời của dòng nhạc vàng. Ấn...',
-    },
-  ];
-
-  // Mock data - Bảng xếp hạng
-  const charts = [
-    {
-      id: 1,
-      title: 'Top Bài Hát Việt Nam',
-      description: 'Cập nhật hàng ngày',
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      icon: '🇻🇳',
-    },
-    {
-      id: 2,
-      title: 'Viral 50',
-      description: 'Trending now',
-      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-      icon: '🔥',
-    },
-    {
-      id: 3,
-      title: 'Top Bài Hát Toàn Cầu',
-      description: 'Global hits',
-      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      icon: '🌍',
-    },
-    {
-      id: 4,
-      title: 'Viral 50',
-      description: 'Top trending',
-      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-      icon: '⚡',
-    },
-  ];
-
-  // Mock data - Mới phát hành
-  const newReleases = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300',
-      title: 'Nơi Này Có Anh',
-      description: 'Sơn Tùng M-TP',
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300',
-      title: 'Lạc Trôi',
-      description: 'Sơn Tùng M-TP',
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300',
-      title: 'Chúng Ta Của Hiện Tại',
-      description: 'Sơn Tùng M-TP',
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300',
-      title: 'Hãy Trao Cho Anh',
-      description: 'Sơn Tùng M-TP ft. Snoop Dogg',
-    },
-    {
-      id: 5,
-      image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300',
-      title: 'Making My Way',
-      description: 'Sơn Tùng M-TP',
-    },
-  ];
-
-  // Mock data - Nghệ sĩ tiêu biểu
-  const artists = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
-      title: 'Sơn Tùng M-TP',
-      description: 'Nghệ sĩ',
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
-      title: 'Đen Vâu',
-      description: 'Nghệ sĩ',
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
-      title: 'Hoàng Thùy Linh',
-      description: 'Nghệ sĩ',
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-      title: 'Mỹ Tâm',
-      description: 'Nghệ sĩ',
-    },
-    {
-      id: 5,
-      image: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300',
-      title: 'Noo Phước Thịnh',
-      description: 'Nghệ sĩ',
-    },
-  ];
-
-  // Mock data - Albums
-  const albums = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300',
-      title: 'Sky Tour',
-      description: 'Sơn Tùng M-TP',
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300',
-      title: 'Chạy Ngay Đi',
-      description: 'Sơn Tùng M-TP',
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300',
-      title: 'Đi Để Trở Về',
-      description: 'Soobin Hoàng Sơn',
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300',
-      title: 'Hoàng',
-      description: 'Hoàng Thùy Linh',
-    },
-    {
-      id: 5,
-      image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300',
-      title: 'Tâm 9',
-      description: 'Mỹ Tâm',
-    },
-  ];
-
   // Fetch homepage data on mount
   useEffect(() => {
     fetchHomeData();
@@ -240,7 +84,11 @@ const Home = () => {
   // ✅ OPTIMIZATION: Memoize helper functions to prevent recreation on every render
   const songToCard = useMemo(() => (song) => ({
     id: song._id,
-    image: song.thumbnail || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300',
+    image:
+      song.thumbnail ||
+      song.image ||
+      song.coverImage ||
+      'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300',
     title: song.title,
     description: song.artist?.name || song.artist || 'Unknown Artist',
   }), []);
@@ -411,13 +259,8 @@ const Home = () => {
                           image={card.image}
                           title={card.title}
                           description={card.description}
-                          onClick={() => setCurrentTrack({
-                            id: item._id,
-                            title: item.title,
-                            artist: item.artist?.name || 'Unknown',
-                            image: item.thumbnail,
-                            audioUrl: item.src,
-                          })}
+                          onClick={() => navigate(`/song/${item._id}`)}
+                          onPlay={() => handlePlaySong(item)}
                         />
                       );
                     } else if (category.contentType === 'albums') {
@@ -428,7 +271,7 @@ const Home = () => {
                           image={card.image}
                           title={card.title}
                           description={card.description}
-                          onClick={() => navigate(`/albums/${item._id}`)}
+                          onClick={() => navigate(`/album/${item._id}`)}
                         />
                       );
                     } else if (category.contentType === 'artists') {
@@ -440,7 +283,7 @@ const Home = () => {
                           title={card.title}
                           description={card.description}
                           type="circle"
-                          onClick={() => navigate(`/artists/${item._id}`)}
+                          onClick={() => navigate(`/artist/${item._id}`)}
                         />
                       );
                     }

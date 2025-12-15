@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CaretRightOutlined } from '@ant-design/icons';
+import PlayButton from './PlayButton';
 
 /**
  * MusicCard - Reusable card component for music content
@@ -7,9 +7,10 @@ import { CaretRightOutlined } from '@ant-design/icons';
  * @param {string} title - Card title
  * @param {string} description - Card description
  * @param {function} onClick - Click handler
+ * @param {function} onPlay - Play button click handler
  * @param {string} type - Card type: 'square' or 'circle' (for artists)
  */
-const MusicCard = ({ image, title, description, onClick, type = 'square' }) => {
+const MusicCard = ({ image, title, description, onClick, onPlay, type = 'square' }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -34,9 +35,13 @@ const MusicCard = ({ image, title, description, onClick, type = 'square' }) => {
           {/* Play Button Overlay */}
           {isHovered && (
             <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 via-pink-600 to-pink-700 flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
-                <CaretRightOutlined className="text-black text-2xl ml-0.5" style={{ fontSize: '24px' }} />
-              </div>
+              <PlayButton
+                size={48}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPlay?.(e);
+                }}
+              />
             </div>
           )}
         </div>

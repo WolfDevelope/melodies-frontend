@@ -7,6 +7,8 @@ import MusicPlayer from '../components/common/MusicPlayer';
 import Sidebar from '../components/common/Sidebar';
 import LibraryModal from '../components/common/LibraryModal';
 import playlistService from '../services/playlistService';
+import albumService from '../services/albumService';
+import artistService from '../services/artistService';
 
 const MainLayout = () => {
   const navigate = useNavigate();
@@ -15,15 +17,11 @@ const MainLayout = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [playlists, setPlaylists] = useState([]);
+  const [favoriteAlbums, setFavoriteAlbums] = useState([]);
+  const [followedArtists, setFollowedArtists] = useState([]);
   
   // Current playing track state (shared across pages)
-  const [currentTrack, setCurrentTrack] = useState({
-    id: 1,
-    title: 'greedy',
-    artist: 'Tate McRae',
-    image: 'https://i.scdn.co/image/ab67616d00001e0221d586ad830dd93b2703b139',
-    audioUrl: './assets/music/Tate McRae - greedy (Official Video).mp3',
-  });
+  const [currentTrack, setCurrentTrack] = useState(null);
 
   // Check if current page should hide sidebar and player
   const isAccountPage = location.pathname.startsWith('/account');
@@ -64,11 +62,31 @@ const MainLayout = () => {
     }
   };
 
+  const fetchFavoriteAlbums = async () => {
+    try {
+      const response = await albumService.getFavoriteAlbums();
+      setFavoriteAlbums(response.data || []);
+    } catch (error) {
+      console.error('Error fetching favorite albums:', error);
+    }
+  };
+
+  const fetchFollowedArtists = async () => {
+    try {
+      const response = await artistService.getFollowedArtists();
+      setFollowedArtists(response.data || []);
+    } catch (error) {
+      console.error('Error fetching followed artists:', error);
+    }
+  };
+
   // Fetch playlists on mount and when navigating away from create page
   useEffect(() => {
     // Only fetch if not on create playlist page
     if (location.pathname !== '/playlist/create') {
       fetchPlaylists();
+      fetchFavoriteAlbums();
+      fetchFollowedArtists();
     }
   }, [location.pathname]);
 
@@ -141,7 +159,7 @@ const MainLayout = () => {
             },
           ]}
           expandedContent={
-            playlists.length === 0 ? (
+            playlists.length === 0 && favoriteAlbums.length === 0 && followedArtists.length === 0 ? (
               // Empty state - Show when no playlists
               <div>
                 <h3 className="text-gray-400 text-sm font-semibold mb-4 px-4">
@@ -159,41 +177,119 @@ const MainLayout = () => {
               </div>
             ) : (
               // Playlists list - Show when playlists exist
-              <div className="space-y-1">
-                {playlists.map((playlist) => (
-                  <div
-                    key={playlist._id}
-                    onClick={() => navigate(`/playlist/${playlist._id}`)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/10 cursor-pointer transition-all group"
-                  >
-                    {/* Playlist Image */}
-                    <div className="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-800">
-                      {playlist.image ? (
-                        <img 
-                          src={playlist.image} 
-                          alt={playlist.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                          </svg>
-                        </div>
-                      )}
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  {playlists.map((playlist) => (
+                    <div
+                      key={playlist._id}
+                      onClick={() => navigate(`/playlist/${playlist._id}`)}
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/10 cursor-pointer transition-all group"
+                    >
+                      {/* Playlist Image */}
+                      <div className="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-800">
+                        {playlist.image ? (
+                          <img 
+                            src={playlist.image} 
+                            alt={playlist.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Playlist Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">
+                          {playlist.name}
+                        </p>
+                        <p className="text-gray-400 text-xs truncate">
+                          Danh sách phát • {playlist.songs?.length || 0} bài hát
+                        </p>
+                      </div>
                     </div>
-                    
-                    {/* Playlist Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">
-                        {playlist.name}
-                      </p>
-                      <p className="text-gray-400 text-xs truncate">
-                        Danh sách phát • {playlist.songs?.length || 0} bài hát
-                      </p>
+                  ))}
+                </div>
+
+                {favoriteAlbums.length > 0 && (
+                  <div>
+                    <h3 className="text-gray-400 text-xs font-semibold mb-2 px-3">
+                      Album yêu thích
+                    </h3>
+                    <div className="space-y-1">
+                      {favoriteAlbums.map((album) => (
+                        <div
+                          key={album._id}
+                          onClick={() => navigate(`/album/${album._id}`)}
+                          className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/10 cursor-pointer transition-all group"
+                        >
+                          <div className="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-800">
+                            {album.coverImage ? (
+                              <img
+                                src={album.coverImage}
+                                alt={album.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-600 to-purple-600" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">
+                              {album.title}
+                            </p>
+                            <p className="text-gray-400 text-xs truncate">
+                              Album
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
+
+                {followedArtists.length > 0 && (
+                  <div>
+                    <h3 className="text-gray-400 text-xs font-semibold mb-2 px-3">
+                      Nghệ sĩ yêu thích
+                    </h3>
+                    <div className="space-y-1">
+                      {followedArtists.map((artist) => (
+                        <div
+                          key={artist._id}
+                          onClick={() => navigate(`/artist/${artist._id}`)}
+                          className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-white/10 cursor-pointer transition-all group"
+                        >
+                          <div className="w-12 h-12 flex-shrink-0 rounded-full overflow-hidden bg-gray-800">
+                            {artist.image ? (
+                              <img
+                                src={artist.image}
+                                alt={artist.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-600" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">
+                              {artist.name}
+                            </p>
+                            <p className="text-gray-400 text-xs truncate">
+                              Nghệ sĩ
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )
           }

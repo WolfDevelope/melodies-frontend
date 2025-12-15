@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { PlusOutlined, CloseOutlined, SearchOutlined, MinusCircleOutlined, PlusCircleOutlined, ClockCircleOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { Input, message, Spin, Modal } from 'antd';
 import usePageTitle from '../hooks/usePageTitle';
 import songService from '../services/songService';
 import playlistService from '../services/playlistService';
+import PlayButton from '../components/common/PlayButton';
 
 const PlaylistDetail = () => {
   const navigate = useNavigate();
   const { id: playlistId } = useParams();
+  const { setCurrentTrack } = useOutletContext();
   usePageTitle('Melodies - Playlist');
   
   const [playlist, setPlaylist] = useState(null);
@@ -124,12 +126,28 @@ const PlaylistDetail = () => {
     setIsDeleteModalVisible(false);
   };
 
+  const handlePlayPlaylist = () => {
+    const firstSong = playlistSongs.find((s) => s?.audioUrl);
+    if (!firstSong) {
+      message.warning('Danh sách phát chưa có bài hát để phát');
+      return;
+    }
+    setCurrentTrack({
+      _id: firstSong._id || firstSong.id,
+      title: firstSong.title,
+      artist: firstSong.artist,
+      thumbnail: firstSong.thumbnail || firstSong.image,
+      audioUrl: firstSong.audioUrl,
+      duration: firstSong.duration,
+    });
+  };
+
   // Fetch all songs on component mount
   useEffect(() => {
     const fetchSongs = async () => {
       try {
         const response = await songService.getAllSongs();
-        const songs = response.data || [];
+        const songs = response.data || response.songs || [];
         
         // Normalize songs: ensure each song has an 'id' field
         const normalizedSongs = songs.map(song => ({
@@ -264,6 +282,7 @@ const PlaylistDetail = () => {
   const getAlbumName = (album) => {
     if (!album) return '-';
     if (typeof album === 'string') return album;
+    if (album.title) return album.title;
     if (album.name) return album.name;
     return '-';
   };
@@ -409,17 +428,7 @@ const PlaylistDetail = () => {
 
       {/* Action Buttons */}
       <div className="px-6 py-6 flex items-center gap-4">
-        <button
-          className="w-12 h-12 rounded-full bg-green-500 hover:bg-green-400 flex items-center justify-center transition-all hover:scale-105"
-        >
-          <svg
-            className="w-6 h-6 text-black"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </button>
+        <PlayButton size={48} onClick={handlePlayPlaylist} />
 
         <button 
           onClick={showDeleteConfirm}
