@@ -22,9 +22,47 @@ const AlbumDetail = () => {
 
   useEffect(() => {
     if (albumId) {
-      fetchAlbumDetails();
-      fetchAlbumSongs();
-      fetchRelatedAlbums();
+      (async () => {
+        setLoading(true);
+        try {
+          const response = await albumService.getAlbumById(albumId);
+          const albumData = response.data;
+          setAlbum(albumData);
+
+          const rawSongRefs = albumData?.songs || [];
+          const songIds = rawSongRefs
+            .map((ref) => {
+              if (!ref) return null;
+              if (typeof ref === 'string') return ref;
+              return ref?._id || ref?.id || null;
+            })
+            .map((id) => (id ? String(id) : null))
+            .filter((id) => !!id && /^[a-fA-F0-9]{24}$/.test(id));
+
+          if (songIds.length > 0) {
+            const songResults = await Promise.all(
+              songIds.map((id) =>
+                songService
+                  .getSongById(id)
+                  .then((res) => res.data)
+                  .catch(() => null)
+              )
+            );
+            setAlbumSongs(songResults.filter(Boolean));
+          } else {
+            setAlbumSongs([]);
+          }
+
+          fetchRelatedAlbums();
+        } catch (error) {
+          console.error('Error fetching album:', error);
+          message.error('Không thể tải thông tin album');
+          setAlbum(null);
+          setAlbumSongs([]);
+        } finally {
+          setLoading(false);
+        }
+      })();
 
       // Sync favorite state from DB
       (async () => {
@@ -36,35 +74,9 @@ const AlbumDetail = () => {
           setIsLiked(false);
         }
       })();
+
     }
   }, [albumId]);
-
-  const fetchAlbumDetails = async () => {
-    setLoading(true);
-    try {
-      const response = await albumService.getAlbumById(albumId);
-      setAlbum(response.data);
-    } catch (error) {
-      console.error('Error fetching album:', error);
-      message.error('Không thể tải thông tin album');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAlbumSongs = async () => {
-    try {
-      const response = await songService.getAllSongs();
-      const allSongs = response.data || response.songs || [];
-      // Filter songs by album
-      const songs = allSongs.filter(song => 
-        song.album?._id === albumId || song.album === albumId
-      );
-      setAlbumSongs(songs);
-    } catch (error) {
-      console.error('Error fetching album songs:', error);
-    }
-  };
 
   const fetchRelatedAlbums = async () => {
     try {
@@ -298,7 +310,12 @@ const AlbumDetail = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <img
-                    src={song.image || 'https://via.placeholder.com/40'}
+                    src={
+                      song.thumbnail ||
+                      song.image ||
+                      song.coverImage ||
+                      'https://via.placeholder.com/40'
+                    }
                     alt={song.title}
                     className="w-10 h-10 rounded"
                   />

@@ -123,7 +123,7 @@ const MainLayout = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-[#22172b] to-[#3d2a3f] ${!isAccountPage ? 'pb-24' : ''}`}>
+    <div className={`min-h-screen flex flex-col bg-gradient-to-b from-[#22172b] to-[#3d2a3f]`}>
       {/* Header - Fixed across all pages */}
       {!isAccountPage && (
         <Header 
@@ -133,13 +133,15 @@ const MainLayout = () => {
       )}
 
       {/* Main Content - Changes based on route */}
-      <main className={`max-w-[1920px] mx-auto transition-all duration-300 ${!isAccountPage ? 'px-6 py-8' : ''} ${!isAccountPage && (sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64')}`}>
-        <Outlet context={{ currentTrack, setCurrentTrack, sidebarCollapsed }} />
-      </main>
+      <div className={`${!isAccountPage ? 'pb-24' : ''}`}>
+        <main className={`max-w-[1920px] mx-auto transition-all duration-300 ${!isAccountPage ? 'px-6 py-8' : ''} ${!isAccountPage && (sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64')}`}>
+          <Outlet context={{ currentTrack, setCurrentTrack, sidebarCollapsed }} />
+        </main>
+      </div>
 
       {/* Footer - Only show on non-account pages */}
       {!isAccountPage && (
-        <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+        <div className={`mt-auto transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
           <Footer />
         </div>
       )}

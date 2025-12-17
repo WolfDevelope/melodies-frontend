@@ -154,16 +154,55 @@ const MusicPlayer = ({ currentTrack, onNext, onPrevious }) => {
 
   // Update audio source when track changes
   useEffect(() => {
-    if (audioRef.current && trackAudioUrl) {
-      const audioEl = audioRef.current;
-      audioEl.src = trackAudioUrl;
-      audioEl.load();
-      setCurrentTime(0);
-      setDuration(0);
+    if (!audioRef.current) return;
+    const audioEl = audioRef.current;
 
-      // Do not auto-play here; keep playback controlled by user gesture (togglePlay)
+    if (!trackAudioUrl) {
+      setIsPlaying(false);
+      return;
+    }
+
+    audioEl.src = trackAudioUrl;
+    audioEl.load();
+    setCurrentTime(0);
+    setDuration(0);
+
+    const playPromise = audioEl.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.error('Audio auto-play error:', err);
+          setIsPlaying(false);
+        });
+    } else {
+      setIsPlaying(true);
     }
   }, [trackAudioUrl]);
+
+  // If the same track is selected again (audioUrl unchanged), start playback if paused
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (!currentTrack) return;
+    if (!trackAudioUrl) return;
+
+    const audioEl = audioRef.current;
+    if (!audioEl.src) return;
+
+    if (audioEl.paused) {
+      const playPromise = audioEl.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch((err) => {
+            console.error('Audio play error:', err);
+            setIsPlaying(false);
+          });
+      } else {
+        setIsPlaying(true);
+      }
+    }
+  }, [currentTrack]);
 
   useEffect(() => {
     if (!audioRef.current) return;

@@ -18,25 +18,60 @@ const ArtistDetail = () => {
   const [loading, setLoading] = useState(true);
   const [popularSongs, setPopularSongs] = useState([]);
   const [albums, setAlbums] = useState([]);
-  const [showAllSongs, setShowAllSongs] = useState(false);
 
   const [isFollowed, setIsFollowed] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     if (artistId) {
-      fetchArtistDetails();
-      fetchArtistSongs();
-      fetchArtistAlbums();
-
-      // Sync follow state from DB
       (async () => {
+        setLoading(true);
         try {
-          const res = await artistService.getFollowedArtists();
-          const ids = (res.data || []).map((a) => String(a?._id));
-          setIsFollowed(ids.includes(String(artistId)));
-        } catch {
-          setIsFollowed(false);
+          const response = await artistService.getArtistById(artistId);
+          const artistData = response.data;
+          setArtist(artistData);
+
+          const rawSongRefs = artistData?.songs || [];
+          const songIds = rawSongRefs
+            .map((ref) => {
+              if (!ref) return null;
+              if (typeof ref === 'string') return ref;
+              return ref?._id || ref?.id || null;
+            })
+            .map((id) => (id ? String(id) : null))
+            .filter((id) => !!id && /^[a-fA-F0-9]{24}$/.test(id));
+
+          if (songIds.length > 0) {
+            const songResults = await Promise.all(
+              songIds.map((id) =>
+                songService
+                  .getSongById(id)
+                  .then((res) => res.data)
+                  .catch(() => null)
+              )
+            );
+            setPopularSongs(songResults.filter(Boolean));
+          } else {
+            setPopularSongs([]);
+          }
+
+          fetchArtistAlbums();
+
+          // Sync follow state from DB
+          try {
+            const res = await artistService.getFollowedArtists();
+            const ids = (res.data || []).map((a) => String(a?._id));
+            setIsFollowed(ids.includes(String(artistId)));
+          } catch {
+            setIsFollowed(false);
+          }
+        } catch (error) {
+          console.error('Error fetching artist:', error);
+          message.error('Không thể tải thông tin nghệ sĩ');
+          setArtist(null);
+          setPopularSongs([]);
+        } finally {
+          setLoading(false);
         }
       })();
     }
@@ -71,33 +106,6 @@ const ArtistDetail = () => {
     }
   };
 
-  const fetchArtistDetails = async () => {
-    setLoading(true);
-    try {
-      const response = await artistService.getArtistById(artistId);
-      setArtist(response.data);
-    } catch (error) {
-      console.error('Error fetching artist:', error);
-      message.error('Không thể tải thông tin nghệ sĩ');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchArtistSongs = async () => {
-    try {
-      const response = await songService.getAllSongs();
-      const allSongs = response.data || response.songs || [];
-      // Filter songs by artist and sort by plays
-      const artistSongs = allSongs
-        .filter(song => song.artist?._id === artistId || song.artist === artistId)
-        .sort((a, b) => (b.plays || 0) - (a.plays || 0));
-      setPopularSongs(artistSongs);
-    } catch (error) {
-      console.error('Error fetching artist songs:', error);
-    }
-  };
-
   const handlePlayArtist = () => {
     const firstSong = popularSongs.find((s) => s?.audioUrl);
     if (!firstSong) {
@@ -117,10 +125,14 @@ const ArtistDetail = () => {
   const fetchArtistAlbums = async () => {
     try {
       const response = await albumService.getAllAlbums();
+      const allAlbums = response.data || response.albums || [];
+      const artistIdStr = String(artistId);
       // Filter albums by artist
-      const artistAlbums = response.data.filter(album => 
-        album.artist?._id === artistId || album.artist === artistId
-      );
+      const artistAlbums = allAlbums.filter((album) => {
+        const albumArtistId = album?.artist?._id ?? album?.artist;
+        if (!albumArtistId) return false;
+        return String(albumArtistId) === artistIdStr;
+      });
       setAlbums(artistAlbums);
     } catch (error) {
       console.error('Error fetching albums:', error);
@@ -164,7 +176,7 @@ const ArtistDetail = () => {
     );
   }
 
-  const songsToShow = showAllSongs ? popularSongs : popularSongs.slice(0, 5);
+  const songsToShow = popularSongs;
 
   return (
     <div className="flex-1 bg-gradient-to-b from-[#1a1a2e] to-[#0f0f1e] overflow-y-auto">
@@ -220,7 +232,7 @@ const ArtistDetail = () => {
 
       {/* Popular Songs Section */}
       <div className="px-8 py-8">
-        <h2 className="text-white text-2xl font-bold mb-6">Phổ biến</h2>
+        <h2 className="text-white text-2xl font-bold mb-6">Bài hát</h2>
         <div className="space-y-2">
           {songsToShow.map((song, index) => (
             <div
@@ -231,7 +243,12 @@ const ArtistDetail = () => {
               <div className="flex items-center gap-4">
                 <span className="text-gray-400 text-base w-4">{index + 1}</span>
                 <img
-                  src={song.image || 'https://via.placeholder.com/48'}
+                  src={
+                    song.thumbnail ||
+                    song.image ||
+                    song.coverImage ||
+                    'https://via.placeholder.com/48'
+                  }
                   alt={song.title}
                   className="w-12 h-12 rounded"
                 />
@@ -251,15 +268,6 @@ const ArtistDetail = () => {
             </div>
           ))}
         </div>
-        
-        {popularSongs.length > 5 && (
-          <button
-            onClick={() => setShowAllSongs(!showAllSongs)}
-            className="mt-4 text-gray-400 hover:text-white font-semibold text-sm"
-          >
-            {showAllSongs ? 'Ẩn bớt' : 'Xem thêm'}
-          </button>
-        )}
       </div>
 
       {/* Albums Section */}
