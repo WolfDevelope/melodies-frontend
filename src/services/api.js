@@ -1,13 +1,17 @@
 /**
  * Base API configuration
  */
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const RAW_API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = String(RAW_API_BASE_URL).replace(/\/+$/, '');
 
 /**
  * API request wrapper with error handling
  */
 const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const safeEndpoint = String(endpoint || '');
+  const path = safeEndpoint.startsWith('/') ? safeEndpoint : `/${safeEndpoint}`;
+  const url = `${API_BASE_URL}${path}`;
   
   const config = {
     headers: {

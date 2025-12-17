@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/users';
+const RAW_API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = String(RAW_API_BASE_URL).replace(/\/+$/, '');
+const API_URL = `${API_BASE_URL}/users`;
 
 /**
  * Get all users with filters
