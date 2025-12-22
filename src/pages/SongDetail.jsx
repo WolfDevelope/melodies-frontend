@@ -156,7 +156,25 @@ const SongDetail = () => {
       writeLikedSongIdsCache(songIds);
       setIsLiked(songIds.includes(String(songId)));
     } catch (error) {
-      // Keep cached UI state on sync failure
+      if (String(error?.message || '').toLowerCase().includes('playlist not found')) {
+        try {
+          localStorage.removeItem(LIKED_PLAYLIST_ID_KEY);
+        } catch {
+          // ignore
+        }
+        setLikedPlaylistId(null);
+        try {
+          const retryId = await getOrCreateLikedPlaylistId({ createIfMissing: false });
+          if (!retryId) return;
+          const retryRes = await playlistService.getPlaylistById(retryId);
+          const retrySongIds = extractPlaylistSongIds(retryRes.data);
+          writeLikedSongIdsCache(retrySongIds);
+          setIsLiked(retrySongIds.includes(String(songId)));
+        } catch {
+          // ignore
+        }
+      }
+      // Keep cached UI state on other sync failures
     }
   };
 

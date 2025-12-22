@@ -172,6 +172,12 @@ const MainLayout = () => {
             setFavoriteAlbums([]);
             setFollowedArtists([]);
             setIsLibraryOpen(false);
+            try {
+              localStorage.removeItem('melodies_liked_playlist_id');
+              localStorage.removeItem('melodies_liked_song_ids');
+            } catch {
+              // ignore
+            }
             navigate('/home');
           }}
         />
