@@ -1,5 +1,15 @@
 import api from './api';
 
+const getUserId = () => {
+  try {
+    const raw = localStorage.getItem('currentUser');
+    const user = raw ? JSON.parse(raw) : null;
+    return user?._id || user?.id || null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Playlist API Service
  */
@@ -10,7 +20,11 @@ const playlistService = {
    * @returns {Promise}
    */
   createPlaylist: (playlistData) => {
-    return api.post('/playlists', playlistData);
+    const userId = getUserId();
+    return api.post('/playlists', {
+      ...playlistData,
+      ...(userId ? { userId } : {}),
+    });
   },
 
   /**
@@ -37,7 +51,11 @@ const playlistService = {
    * @returns {Promise}
    */
   updatePlaylistInfo: (id, updateData) => {
-    return api.put(`/playlists/${id}`, updateData);
+    const userId = getUserId();
+    return api.put(`/playlists/${id}`, {
+      ...updateData,
+      ...(userId ? { userId } : {}),
+    });
   },
 
   /**
@@ -47,7 +65,11 @@ const playlistService = {
    * @returns {Promise}
    */
   addSongToPlaylist: (playlistId, songId) => {
-    return api.post(`/playlists/${playlistId}/songs`, { songId });
+    const userId = getUserId();
+    return api.post(`/playlists/${playlistId}/songs`, {
+      songId,
+      ...(userId ? { userId } : {}),
+    });
   },
 
   /**

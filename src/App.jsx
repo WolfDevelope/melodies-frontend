@@ -20,6 +20,8 @@ import PlaylistDetail from './pages/PlaylistDetail'
 import SongDetail from './pages/SongDetail'
 import ArtistDetail from './pages/ArtistDetail'
 import AlbumDetail from './pages/AlbumDetail'
+import ProtectedRoute from './components/common/ProtectedRoute'
+import AdminRoute from './components/common/AdminRoute'
 import './App.css'
 
 function App() {
@@ -51,13 +53,13 @@ function App() {
           <Route path="/album/:id" element={<AlbumDetail />} />
           <Route path="/playlist/create" element={<CreatePlaylist />} />
           <Route path="/playlist/:id" element={<PlaylistDetail />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/account/edit-profile" element={<EditProfile />} />
-          <Route path="/account/change-password" element={<ChangePassword />} />
+          <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+          <Route path="/account/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+          <Route path="/account/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
         </Route>
 
         {/* Admin route - No layout */}
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
       </Routes>
     </Router>
   )

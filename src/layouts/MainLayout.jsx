@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { PlusOutlined } from '@ant-design/icons';
+import { SettingOutlined } from '@ant-design/icons';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import MusicPlayer from '../components/common/MusicPlayer';
@@ -9,6 +10,9 @@ import LibraryModal from '../components/common/LibraryModal';
 import playlistService from '../services/playlistService';
 import albumService from '../services/albumService';
 import artistService from '../services/artistService';
+import authService from '../services/authService';
+import AuthGateModal from '../components/common/AuthGateModal';
+import GuestCtaBanner from '../components/common/GuestCtaBanner';
 
 const MainLayout = () => {
   const navigate = useNavigate();
@@ -19,6 +23,8 @@ const MainLayout = () => {
   const [playlists, setPlaylists] = useState([]);
   const [favoriteAlbums, setFavoriteAlbums] = useState([]);
   const [followedArtists, setFollowedArtists] = useState([]);
+  const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
+  const [authGateOpen, setAuthGateOpen] = useState(false);
   
   // Current playing track state (shared across pages)
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -82,6 +88,16 @@ const MainLayout = () => {
 
   // Fetch playlists on mount and when navigating away from create page
   useEffect(() => {
+    const user = authService.getCurrentUser();
+    setCurrentUser(user);
+
+    if (!user) {
+      setPlaylists([]);
+      setFavoriteAlbums([]);
+      setFollowedArtists([]);
+      return;
+    }
+
     // Only fetch if not on create playlist page
     if (location.pathname !== '/playlist/create') {
       fetchPlaylists();
@@ -89,6 +105,24 @@ const MainLayout = () => {
       fetchFollowedArtists();
     }
   }, [location.pathname]);
+
+  const requireAuthPlay = (action) => {
+    const user = authService.getCurrentUser();
+    if (!user) {
+      setAuthGateOpen(true);
+      return;
+    }
+    action?.();
+  };
+
+  const requireAuth = (action) => {
+    const user = authService.getCurrentUser();
+    if (!user) {
+      setAuthGateOpen(true);
+      return;
+    }
+    action?.();
+  };
 
   // Close library modal when navigating to create playlist page
   React.useEffect(() => {
@@ -129,13 +163,32 @@ const MainLayout = () => {
         <Header 
           searchQuery={searchQuery}
           onSearchChange={handleSearchQueryChange}
+          currentUser={currentUser}
+          onLogout={() => {
+            authService.logout();
+            setCurrentUser(null);
+            setCurrentTrack(null);
+            setPlaylists([]);
+            setFavoriteAlbums([]);
+            setFollowedArtists([]);
+            setIsLibraryOpen(false);
+            navigate('/home');
+          }}
         />
       )}
 
       {/* Main Content - Changes based on route */}
       <div className={`${!isAccountPage ? 'pb-24' : ''}`}>
         <main className={`max-w-[1920px] mx-auto transition-all duration-300 ${!isAccountPage ? 'px-6 py-8' : ''} ${!isAccountPage && (sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64')}`}>
-          <Outlet context={{ currentTrack, setCurrentTrack, sidebarCollapsed }} />
+          <Outlet
+            context={{
+              currentTrack,
+              setCurrentTrack,
+              sidebarCollapsed,
+              currentUser,
+              requireAuthPlay,
+            }}
+          />
         </main>
       </div>
 
@@ -151,14 +204,23 @@ const MainLayout = () => {
         <Sidebar
           collapsed={sidebarCollapsed}
           onCollapse={setSidebarCollapsed}
-          onExpandLibrary={() => setIsLibraryOpen(true)}
+          onExpandLibrary={() => requireAuth(() => setIsLibraryOpen(true))}
           title="Thư viện"
           menuItems={[
             {
               icon: <PlusOutlined />,
               label: 'Tạo danh sách phát',
-              onClick: handleCreatePlaylist,
+              onClick: () => requireAuth(handleCreatePlaylist),
             },
+            ...(currentUser?.role === 'admin'
+              ? [
+                  {
+                    icon: <SettingOutlined />,
+                    label: 'Admin',
+                    onClick: () => navigate('/admin'),
+                  },
+                ]
+              : []),
           ]}
           expandedContent={
             playlists.length === 0 && favoriteAlbums.length === 0 && followedArtists.length === 0 ? (
@@ -171,7 +233,7 @@ const MainLayout = () => {
                   Chúng tôi sẽ giúp bạn tạo danh sách phát
                 </p>
                 <button 
-                  onClick={handleCreatePlaylist}
+                  onClick={() => requireAuth(handleCreatePlaylist)}
                   className="w-full px-4 py-2 rounded-full bg-white text-black font-semibold hover:scale-105 transition-transform"
                 >
                   Tạo danh sách phát
@@ -313,6 +375,15 @@ const MainLayout = () => {
         onClose={() => setIsLibraryOpen(false)}
         onCreatePlaylist={handleCreatePlaylist}
       />
+
+      {!isAccountPage && !currentUser && (
+        <GuestCtaBanner
+          onLoginClick={() => navigate('/login')}
+          onSignupClick={() => navigate('/signup')}
+        />
+      )}
+
+      <AuthGateModal open={authGateOpen} onClose={() => setAuthGateOpen(false)} />
     </div>
   );
 };

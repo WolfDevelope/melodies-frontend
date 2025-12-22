@@ -10,7 +10,7 @@ import PlayButton from '../components/common/PlayButton';
 const SongDetail = () => {
   const navigate = useNavigate();
   const { id: songId } = useParams();
-  const { setCurrentTrack } = useOutletContext();
+  const { setCurrentTrack, requireAuthPlay } = useOutletContext();
   usePageTitle('Melodies - Song');
   
   const [song, setSong] = useState(null);
@@ -188,13 +188,15 @@ const SongDetail = () => {
 
   const handlePlaySong = () => {
     if (!song) return;
-    setCurrentTrack({
-      _id: song._id,
-      title: song.title,
-      artist: song.artist,
-      thumbnail: song.thumbnail,
-      audioUrl: song.audioUrl,
-      duration: song.duration,
+    requireAuthPlay?.(() => {
+      setCurrentTrack({
+        _id: song._id,
+        title: song.title,
+        artist: song.artist,
+        thumbnail: song.thumbnail,
+        audioUrl: song.audioUrl,
+        duration: song.duration,
+      });
     });
   };
 

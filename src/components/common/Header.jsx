@@ -9,12 +9,16 @@ import { Dropdown } from 'antd';
  * @param {boolean} showPremium - Show premium button (default: true)
  * @param {string} searchQuery - Search query from parent (optional)
  * @param {function} onSearchChange - Callback when search changes (optional)
+ * @param {Object|null} currentUser - Current logged-in user (optional)
+ * @param {function} onLogout - Logout handler (optional)
  */
 const Header = ({ 
   showNav = true, 
   showPremium = true, 
   searchQuery = '',
-  onSearchChange = null 
+  onSearchChange = null,
+  currentUser = null,
+  onLogout = null,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -182,9 +186,7 @@ const Header = ({
         </div>
       ),
       onClick: () => {
-        // Handle logout
-        localStorage.removeItem('user');
-        navigate('/login');
+        onLogout?.();
         setDropdownOpen(false);
       },
     },
@@ -270,25 +272,32 @@ const Header = ({
                 Khám phá Premium
               </button>
             )}
-            <Dropdown
-              menu={{ items: menuItems }}
-              trigger={['click']}
-              open={dropdownOpen}
-              onOpenChange={setDropdownOpen}
-              placement="bottomRight"
-              overlayClassName="user-menu-dropdown"
-              dropdownRender={(menu) => (
-                <div className="bg-[#22172b] rounded-lg shadow-2xl min-w-[240px] py-2">
-                  {menu}
-                </div>
-              )}
-            >
-              <button
-                className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+            {currentUser ? (
+              <Dropdown
+                menu={{ items: menuItems }}
+                trigger={['click']}
+                open={dropdownOpen}
+                onOpenChange={setDropdownOpen}
+                placement="bottomRight"
+                overlayClassName="user-menu-dropdown"
+                dropdownRender={(menu) => (
+                  <div className="bg-[#22172b] rounded-lg shadow-2xl min-w-[240px] py-2">
+                    {menu}
+                  </div>
+                )}
               >
-                <UserOutlined className="text-white text-lg" />
+                <button className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                  <UserOutlined className="text-white text-lg" />
+                </button>
+              </Dropdown>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="px-6 py-1.5 rounded-full bg-white text-black font-semibold hover:scale-105 transition-transform"
+              >
+                Đăng nhập
               </button>
-            </Dropdown>
+            )}
           </div>
         </div>
       </div>

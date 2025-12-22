@@ -10,7 +10,7 @@ import usePageTitle from '../hooks/usePageTitle';
 const Home = () => {
   usePageTitle('Trang chủ');
   const navigate = useNavigate();
-  const { currentTrack, setCurrentTrack, sidebarCollapsed } = useOutletContext();
+  const { currentTrack, setCurrentTrack, sidebarCollapsed, requireAuthPlay } = useOutletContext();
   const [loading, setLoading] = useState(true);
   const [homeData, setHomeData] = useState(null);
   const [expandedCategoryId, setExpandedCategoryId] = useState(null);
@@ -18,13 +18,15 @@ const Home = () => {
 
   const handlePlaySong = (song) => {
     if (!song) return;
-    setCurrentTrack({
-      _id: song._id,
-      title: song.title,
-      artist: song.artist,
-      thumbnail: song.thumbnail,
-      audioUrl: song.audioUrl,
-      duration: song.duration,
+    requireAuthPlay?.(() => {
+      setCurrentTrack({
+        _id: song._id,
+        title: song.title,
+        artist: song.artist,
+        thumbnail: song.thumbnail,
+        audioUrl: song.audioUrl,
+        duration: song.duration,
+      });
     });
   };
 

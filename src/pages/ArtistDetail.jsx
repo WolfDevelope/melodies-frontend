@@ -11,7 +11,7 @@ import PlayButton from '../components/common/PlayButton';
 const ArtistDetail = () => {
   const navigate = useNavigate();
   const { id: artistId } = useParams();
-  const { setCurrentTrack } = useOutletContext();
+  const { setCurrentTrack, requireAuthPlay } = useOutletContext();
   usePageTitle('Melodies - Artist');
   
   const [artist, setArtist] = useState(null);
@@ -112,13 +112,15 @@ const ArtistDetail = () => {
       message.warning('Nghệ sĩ chưa có bài hát để phát');
       return;
     }
-    setCurrentTrack({
-      _id: firstSong._id,
-      title: firstSong.title,
-      artist: firstSong.artist,
-      thumbnail: firstSong.thumbnail,
-      audioUrl: firstSong.audioUrl,
-      duration: firstSong.duration,
+    requireAuthPlay?.(() => {
+      setCurrentTrack({
+        _id: firstSong._id,
+        title: firstSong.title,
+        artist: firstSong.artist,
+        thumbnail: firstSong.thumbnail,
+        audioUrl: firstSong.audioUrl,
+        duration: firstSong.duration,
+      });
     });
   };
 

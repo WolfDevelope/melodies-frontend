@@ -10,7 +10,7 @@ import PlayButton from '../components/common/PlayButton';
 const AlbumDetail = () => {
   const navigate = useNavigate();
   const { id: albumId } = useParams();
-  const { setCurrentTrack } = useOutletContext();
+  const { setCurrentTrack, requireAuthPlay } = useOutletContext();
   usePageTitle('Melodies - Album');
   
   const [album, setAlbum] = useState(null);
@@ -97,13 +97,15 @@ const AlbumDetail = () => {
       message.warning('Album chưa có bài hát để phát');
       return;
     }
-    setCurrentTrack({
-      _id: firstSong._id,
-      title: firstSong.title,
-      artist: firstSong.artist,
-      thumbnail: firstSong.thumbnail,
-      audioUrl: firstSong.audioUrl,
-      duration: firstSong.duration,
+    requireAuthPlay?.(() => {
+      setCurrentTrack({
+        _id: firstSong._id,
+        title: firstSong.title,
+        artist: firstSong.artist,
+        thumbnail: firstSong.thumbnail,
+        audioUrl: firstSong.audioUrl,
+        duration: firstSong.duration,
+      });
     });
   };
 
